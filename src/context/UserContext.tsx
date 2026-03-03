@@ -58,23 +58,29 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
             if (user) {
                 // Fetch profile
-                const { data: profile } = await supabase
+                const { data: profile, error } = await supabase
                     .from('profiles')
                     .select('role, full_name, grades(slug)')
                     .eq('id', user.id)
                     .single();
 
                 if (profile) {
-                    const g = (profile.grades as any)?.slug as GradeSlug;
+                    // Supabase joins can return an array or a single object depending on config
+                    const gradeData = profile.grades;
+                    const g = (Array.isArray(gradeData) ? gradeData[0]?.slug : (gradeData as any)?.slug) as GradeSlug;
+
                     setRole(profile.role as UserRole);
                     setFullName(profile.full_name || user.email || '');
                     setGradeSlug(g || 'aprendiz');
+
                     // Clear mock data if a real session is found
                     localStorage.removeItem('mock_role');
                     localStorage.removeItem('mock_name');
                     localStorage.removeItem('mock_grade');
                     setInitializing(false);
                     return;
+                } else if (error) {
+                    console.error('Error fetching profile for sync:', error);
                 }
             }
 
@@ -99,8 +105,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (newGrade) { setGradeSlug(newGrade); localStorage.setItem('mock_grade', newGrade); }
     };
 
+    const isAdmin = role === 'admin';
     const gradeOrder = GRADE_ORDER[gradeSlug];
-    const canSeeGrade = (slug: GradeSlug) => GRADE_ORDER[slug] <= gradeOrder;
+    const canSeeGrade = (slug: GradeSlug) => {
+        if (isAdmin) return true; // Admins ven TODO
+        return GRADE_ORDER[slug] <= gradeOrder;
+    };
 
     return (
         <UserContext.Provider value={{

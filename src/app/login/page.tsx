@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
 import { MOCK_USERS } from '@/lib/mock-data';
+import { createClient } from '@/lib/supabase/client';
+import type { GradeSlug } from '@/types';
 
 export default function LoginPage() {
     const router = useRouter();
@@ -61,13 +63,16 @@ export default function LoginPage() {
                     .single();
 
                 if (profile) {
-                    const gradeData = profile.grades as any;
+                    const gradeData = profile.grades;
+                    const gSlug = (Array.isArray(gradeData) ? gradeData[0]?.slug : (gradeData as any)?.slug) as GradeSlug;
+                    const gName = (Array.isArray(gradeData) ? gradeData[0]?.name : (gradeData as any)?.name) as string;
+
                     setUser({
                         role: profile.role,
                         name: profile.full_name || email,
-                        gradeSlug: gradeData?.slug || 'aprendiz',
+                        gradeSlug: gSlug || 'aprendiz',
                         gradeId: profile.grade_id,
-                        gradeName: gradeData?.name || 'Aprendiz'
+                        gradeName: gName || 'Aprendiz'
                     });
                 }
             }

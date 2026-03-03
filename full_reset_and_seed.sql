@@ -181,5 +181,13 @@ BEGIN
     now()
   );
 
-  RAISE NOTICE 'Admin creado: % (%)', admin_name, admin_email;
+  -- 3. Crear o actualizar el perfil (para evitar conflictos con el trigger)
+  INSERT INTO public.profiles (id, full_name, role, grade_id)
+  VALUES (new_uid, admin_name, 'admin', maestro_id)
+  ON CONFLICT (id) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    role = EXCLUDED.role,
+    grade_id = EXCLUDED.grade_id;
+
+  RAISE NOTICE 'Admin y Perfil procesados: % (%)', admin_name, admin_email;
 END $$;
