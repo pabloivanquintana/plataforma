@@ -1,16 +1,18 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
     format, startOfMonth, endOfMonth, eachDayOfInterval,
     startOfWeek, endOfWeek, isSameMonth, isSameDay, isToday,
     addMonths, subMonths, parseISO
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Calendar, List } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, List, Loader2 } from 'lucide-react';
 import { MOCK_EVENTS } from '@/lib/mock-data';
+import { useUser } from '@/context/UserContext';
+import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import type { EventType } from '@/types';
+import type { EventType, CalendarEvent } from '@/types';
 
 const EVENT_TYPE_COLORS: Record<EventType, string> = {
     ritual: 'bg-yellow-500/80 text-black',
@@ -29,11 +31,35 @@ const EVENT_TYPE_BADGES: Record<EventType, string> = {
 type View = 'month' | 'list';
 
 export default function CalendarPage() {
-    const [currentDate, setCurrentDate] = useState(new Date(2026, 2, 1)); // March 2026
+    const [currentDate, setCurrentDate] = useState(new Date());
     const [view, setView] = useState<View>('month');
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
     const [selectedDay, setSelectedDay] = useState<Date | null>(null);
+    const [loading, setLoading] = useState(true);
 
-    const events = MOCK_EVENTS;
+    const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
+
+    useEffect(() => {
+        async function fetchData() {
+            if (!hasSupabase) {
+                setEvents(MOCK_EVENTS);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const supabase = createClient();
+                const { data } = await supabase.from('events').select('*').order('event_date');
+                if (data) setEvents(data as any);
+            } catch (err) {
+                console.error('Error fetching events:', err);
+                setEvents(MOCK_EVENTS);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [hasSupabase]);
 
     // Days for the current month grid
     const monthDays = useMemo(() => {

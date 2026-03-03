@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { Lock } from 'lucide-react';
-import { MOCK_MEDIA, GRADES } from '@/lib/mock-data';
+import { useState, useMemo, useEffect } from 'react';
+import { Lock, Loader2 } from 'lucide-react';
+import { MOCK_MEDIA, GRADES as MOCK_GRADES } from '@/lib/mock-data';
 import MediaCard from '@/components/MediaCard';
 import { useUser } from '@/context/UserContext';
-import type { GradeSlug } from '@/types';
-import type { MediaType } from '@/types';
+import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import type { GradeSlug, MediaType, MediaItem, Grade } from '@/types';
 
 const TYPE_FILTERS: { value: MediaType | 'all'; label: string }[] = [
     { value: 'all', label: 'Todos' },
@@ -25,26 +25,60 @@ const GRADE_BADGE: Record<GradeSlug, string> = {
 
 export default function LibraryPage() {
     const { canSeeGrade, gradeName, gradeOrder } = useUser();
+    const [mediaItems, setMediaItems] = useState<MediaItem[]>([]);
+    const [grades, setGrades] = useState<Grade[]>([]);
     const [typeFilter, setTypeFilter] = useState<MediaType | 'all'>('all');
     const [gradeFilter, setGradeFilter] = useState<string>('all');
+    const [loading, setLoading] = useState(true);
+
+    const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
+
+    useEffect(() => {
+        async function fetchData() {
+            if (!hasSupabase) {
+                setMediaItems(MOCK_MEDIA);
+                setGrades(MOCK_GRADES);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const supabase = createClient();
+                const [mRes, gRes] = await Promise.all([
+                    supabase.from('media_items').select('*').order('created_at', { ascending: false }),
+                    supabase.from('grades').select('*').order('name')
+                ]);
+
+                if (mRes.data) setMediaItems(mRes.data as any);
+                if (gRes.data) setGrades(gRes.data as any);
+            } catch (err) {
+                console.error('Error fetching media:', err);
+                setMediaItems(MOCK_MEDIA);
+                setGrades(MOCK_GRADES);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [hasSupabase]);
 
     // accessible grades (respecting hierarchy)
     const accessibleGradeIds = useMemo(
-        () => GRADES.filter((g) => canSeeGrade(g.slug as GradeSlug)).map((g) => g.id),
-        [canSeeGrade],
+        () => grades.filter((g) => canSeeGrade(g.slug as GradeSlug)).map((g) => g.id),
+        [canSeeGrade, grades],
     );
 
     const filtered = useMemo(() => {
-        return MOCK_MEDIA.filter((m) => {
+        return mediaItems.filter((m) => {
             const accessible = accessibleGradeIds.includes(m.grade_id);
             const matchType = typeFilter === 'all' || m.type === typeFilter;
             const matchGrade = gradeFilter === 'all' || m.grade_id === gradeFilter;
             return accessible && matchType && matchGrade;
         });
-    }, [accessibleGradeIds, typeFilter, gradeFilter]);
+    }, [accessibleGradeIds, typeFilter, gradeFilter, mediaItems]);
 
     // count locked items (not accessible)
-    const lockedCount = MOCK_MEDIA.filter((m) => !accessibleGradeIds.includes(m.grade_id)).length;
+    const lockedCount = mediaItems.filter((m) => !accessibleGradeIds.includes(m.grade_id)).length;
 
     return (
         <div className="space-y-8">
@@ -82,7 +116,7 @@ export default function LibraryPage() {
                     >
                         Todos mis grados
                     </button>
-                    {GRADES.filter((g) => canSeeGrade(g.slug as GradeSlug)).map((g) => (
+                    {grades.filter((g) => canSeeGrade(g.slug as GradeSlug)).map((g) => (
                         <button
                             key={g.id}
                             onClick={() => setGradeFilter(gradeFilter === g.id ? 'all' : g.id)}

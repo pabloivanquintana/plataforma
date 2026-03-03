@@ -52,14 +52,23 @@ export default function LoginPage() {
             });
             if (authError) throw authError;
             // Obtener perfil para rol
+            // Obtener perfil completo (incluyendo grado)
             if (authData.user) {
                 const { data: profile } = await supabase
                     .from('profiles')
-                    .select('role, full_name')
+                    .select('role, full_name, grade_id, grades(slug, name)')
                     .eq('id', authData.user.id)
                     .single();
+
                 if (profile) {
-                    setUser({ role: profile.role, name: profile.full_name ?? email });
+                    const gradeData = profile.grades as any;
+                    setUser({
+                        role: profile.role,
+                        name: profile.full_name || email,
+                        gradeSlug: gradeData?.slug || 'aprendiz',
+                        gradeId: profile.grade_id,
+                        gradeName: gradeData?.name || 'Aprendiz'
+                    });
                 }
             }
             router.push('/app/topics');

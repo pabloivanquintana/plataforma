@@ -1,12 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo } from 'react';
-import { MOCK_TOPICS, GRADES } from '@/lib/mock-data';
-import { ChevronRight, BookOpen, FileText, Lock } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { ChevronRight, BookOpen, FileText, Lock, Loader2 } from 'lucide-react';
 import { useUser } from '@/context/UserContext';
+import { createClient } from '@/lib/supabase/client';
+import { MOCK_TOPICS, GRADES as MOCK_GRADES } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
-import type { GradeSlug } from '@/types';
+import type { GradeSlug, Topic, Grade } from '@/types';
 import { GRADE_ORDER } from '@/types';
 
 const GRADE_LABEL: Record<GradeSlug, { label: string; color: string }> = {
@@ -17,15 +18,49 @@ const GRADE_LABEL: Record<GradeSlug, { label: string; color: string }> = {
 
 export default function TopicsPage() {
     const { canSeeGrade, gradeName, gradeSlug } = useUser();
+    const [topics, setTopics] = useState<Topic[]>([]);
+    const [grades, setGrades] = useState<Grade[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
+
+    useEffect(() => {
+        async function fetchData() {
+            if (!hasSupabase) {
+                setTopics(MOCK_TOPICS);
+                setGrades(MOCK_GRADES);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const supabase = createClient();
+                const [tRes, gRes] = await Promise.all([
+                    supabase.from('topics').select('*, resources(*)').order('order'),
+                    supabase.from('grades').select('*').order('name')
+                ]);
+
+                if (tRes.data) setTopics(tRes.data as any);
+                if (gRes.data) setGrades(gRes.data as any);
+            } catch (err) {
+                console.error('Error fetching data:', err);
+                setTopics(MOCK_TOPICS);
+                setGrades(MOCK_GRADES);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [hasSupabase]);
 
     // Agrupar temas por grado y filtrar los que puede ver el usuario
     const grouped = useMemo(() => {
-        return GRADES.map((grade) => ({
+        return grades.map((grade) => ({
             grade,
             canSee: canSeeGrade(grade.slug as GradeSlug),
-            topics: MOCK_TOPICS.filter((t) => t.grade_id === grade.id),
+            topics: topics.filter((t) => t.grade_id === grade.id),
         })).filter((g) => g.topics.length > 0);
-    }, [canSeeGrade]);
+    }, [canSeeGrade, grades, topics]);
 
     const visibleTopics = grouped.filter((g) => g.canSee).flatMap((g) => g.topics);
     const totalResources = visibleTopics.reduce((a, t) => a + (t.resources?.length ?? 0), 0);

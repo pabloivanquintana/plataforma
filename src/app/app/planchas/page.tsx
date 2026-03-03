@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, User, Calendar, Tag, ExternalLink, ScrollText, ChevronRight, Lock } from 'lucide-react';
-import { MOCK_PLANCHAS, GRADES } from '@/lib/mock-data';
+import { Search, User, Calendar, Tag, ExternalLink, ScrollText, ChevronRight, Lock, Loader2 } from 'lucide-react';
+import { MOCK_PLANCHAS, GRADES as MOCK_GRADES } from '@/lib/mock-data';
 import { useUser } from '@/context/UserContext';
+import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
-import type { Plancha } from '@/types';
-import type { GradeSlug } from '@/types';
+import type { Plancha, Grade, GradeSlug } from '@/types';
 
 const GRADE_BADGE: Record<GradeSlug, string> = {
     aprendiz: 'border-stone-500/30 bg-stone-500/8 text-stone-400',
@@ -17,22 +17,56 @@ const GRADE_BADGE: Record<GradeSlug, string> = {
 
 export default function PlanchasPage() {
     const { canSeeGrade, gradeName } = useUser();
+    const [planchas, setPlanchas] = useState<Plancha[]>([]);
+    const [grades, setGrades] = useState<Grade[]>([]);
     const [search, setSearch] = useState('');
     const [yearFilter, setYearFilter] = useState('Todos');
     const [tagFilter, setTagFilter] = useState<string | null>(null);
     const [gradeFilter, setGradeFilter] = useState<string>('all');
+    const [loading, setLoading] = useState(true);
+
+    const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
+
+    useEffect(() => {
+        async function fetchData() {
+            if (!hasSupabase) {
+                setPlanchas(MOCK_PLANCHAS);
+                setGrades(MOCK_GRADES);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const supabase = createClient();
+                const [pRes, gRes] = await Promise.all([
+                    supabase.from('planchas').select('*').order('order_index'),
+                    supabase.from('grades').select('*').order('name')
+                ]);
+
+                if (pRes.data) setPlanchas(pRes.data as any);
+                if (gRes.data) setGrades(gRes.data as any);
+            } catch (err) {
+                console.error('Error fetching planchas:', err);
+                setPlanchas(MOCK_PLANCHAS);
+                setGrades(MOCK_GRADES);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [hasSupabase]);
 
     // accessible grades (respecting hierarchy)
     const accessibleGradeIds = useMemo(
-        () => GRADES.filter((g) => canSeeGrade(g.slug as GradeSlug)).map((g) => g.id),
-        [canSeeGrade],
+        () => grades.filter((g) => canSeeGrade(g.slug as GradeSlug)).map((g) => g.id),
+        [canSeeGrade, grades],
     );
 
     const accessiblePlanchas = useMemo(
-        () => MOCK_PLANCHAS.filter((p) => accessibleGradeIds.includes(p.grade_id)),
-        [accessibleGradeIds],
+        () => planchas.filter((p) => accessibleGradeIds.includes(p.grade_id)),
+        [accessibleGradeIds, planchas],
     );
-    const lockedCount = MOCK_PLANCHAS.length - accessiblePlanchas.length;
+    const lockedCount = planchas.length - accessiblePlanchas.length;
 
     // Derived filter options from accessible planchas only
     const ALL_YEARS = ['Todos', ...Array.from(new Set(accessiblePlanchas.map((p) => p.date.slice(0, 4)))).sort().reverse()];
@@ -83,7 +117,7 @@ export default function PlanchasPage() {
                     >
                         Todos
                     </button>
-                    {GRADES.filter((g) => canSeeGrade(g.slug as GradeSlug)).map((g) => (
+                    {grades.filter((g) => canSeeGrade(g.slug as GradeSlug)).map((g) => (
                         <button
                             key={g.id}
                             onClick={() => setGradeFilter(gradeFilter === g.id ? 'all' : g.id)}
@@ -180,7 +214,7 @@ export default function PlanchasPage() {
             ) : (
                 <div className="space-y-2">
                     {filtered.map((plancha, i) => (
-                        <PlanchaRow key={plancha.id} plancha={plancha} index={i} />
+                        <PlanchaRow key={plancha.id} plancha={plancha} index={i} grades={grades} />
                     ))}
                 </div>
             )}
@@ -188,8 +222,8 @@ export default function PlanchasPage() {
     );
 }
 
-function PlanchaRow({ plancha, index }: { plancha: Plancha; index: number }) {
-    const grade = GRADES.find((g) => g.id === plancha.grade_id);
+function PlanchaRow({ plancha, index, grades }: { plancha: Plancha; index: number; grades: Grade[] }) {
+    const grade = grades.find((g: Grade) => g.id === plancha.grade_id);
     const gradeBadge = grade ? GRADE_BADGE[grade.slug as GradeSlug] : '';
 
     return (
