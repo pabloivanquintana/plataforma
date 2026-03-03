@@ -67,12 +67,23 @@ export default function LoginPage() {
                     const gSlug = (Array.isArray(gradeData) ? gradeData[0]?.slug : (gradeData as any)?.slug) as GradeSlug;
                     const gName = (Array.isArray(gradeData) ? gradeData[0]?.name : (gradeData as any)?.name) as string;
 
+                    console.log("Login - Success profile fetch:", { gSlug, role: profile.role });
                     setUser({
                         role: profile.role,
                         name: profile.full_name || email,
                         gradeSlug: gSlug || 'aprendiz',
                         gradeId: profile.grade_id,
                         gradeName: gName || 'Aprendiz'
+                    });
+                } else {
+                    // Fallback to metadata if DB profile is missing
+                    const meta = authData.user?.user_metadata;
+                    console.log("Login - Profile missing, using metadata:", meta);
+                    setUser({
+                        role: (meta?.role as any) || 'student',
+                        name: meta?.full_name || email,
+                        gradeSlug: (meta?.grade_slug as any) || 'aprendiz',
+                        gradeName: meta?.grade_slug === 'maestro' ? 'Maestro' : 'Aprendiz'
                     });
                 }
             }

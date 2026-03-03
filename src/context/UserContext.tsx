@@ -55,6 +55,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
             // 1. Verificar si hay sesión real en Supabase
             const { data: { user } } = await supabase.auth.getUser();
+            console.log("UserContext sync - Auth User:", user?.email);
 
             if (user) {
                 // Fetch profile
@@ -63,6 +64,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     .select('role, full_name, grades(slug)')
                     .eq('id', user.id)
                     .single();
+
+                console.log("UserContext sync - Profile Data:", profile);
+                if (error) console.error("UserContext sync - Profile Error:", error);
 
                 if (profile) {
                     // Supabase joins can return an array or a single object depending on config
@@ -79,8 +83,17 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     localStorage.removeItem('mock_grade');
                     setInitializing(false);
                     return;
-                } else if (error) {
-                    console.error('Error fetching profile for sync:', error);
+                } else {
+                    // FALLBACK: Si no hay perfil en la tabla, intentar usar metadata de Auth
+                    const meta = user.user_metadata;
+                    if (meta && meta.role) {
+                        console.log("UserContext - Falling back to Auth Metadata:", meta);
+                        setRole(meta.role as UserRole);
+                        setFullName(meta.full_name || user.email || '');
+                        setGradeSlug((meta.grade_slug as GradeSlug) || 'aprendiz');
+                        setInitializing(false);
+                        return;
+                    }
                 }
             }
 
