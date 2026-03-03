@@ -1,0 +1,178 @@
+'use client';
+
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff, Lock, Mail } from 'lucide-react';
+import { useUser } from '@/context/UserContext';
+import { MOCK_USERS } from '@/lib/mock-data';
+
+export default function LoginPage() {
+    const router = useRouter();
+    const { setUser } = useUser();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+
+    const hasSupabase =
+        process.env.NEXT_PUBLIC_SUPABASE_URL &&
+        process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setError('');
+
+        if (!hasSupabase) {
+            await new Promise((r) => setTimeout(r, 700));
+            if (email && password) {
+                // Buscar en MOCK_USERS por email
+                const found = MOCK_USERS.find((u) => u.email === email);
+                setUser({
+                    role: found?.role ?? 'student',
+                    name: found?.full_name ?? 'Hermano Demo',
+                    gradeSlug: found?.grade_slug ?? 'companero',
+                });
+                router.push('/app/topics');
+            } else {
+                setError('Por favor ingresá email y contraseña.');
+            }
+            setLoading(false);
+            return;
+        }
+
+
+        try {
+            const { createClient } = await import('@/lib/supabase/client');
+            const supabase = createClient();
+            const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+            });
+            if (authError) throw authError;
+            // Obtener perfil para rol
+            if (authData.user) {
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('role, full_name')
+                    .eq('id', authData.user.id)
+                    .single();
+                if (profile) {
+                    setUser({ role: profile.role, name: profile.full_name ?? email });
+                }
+            }
+            router.push('/app/topics');
+            router.refresh();
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : 'Error al iniciar sesión';
+            setError(message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-[#050505] flex items-center justify-center p-4 relative overflow-hidden">
+            {/* Ambient glow */}
+            <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-yellow-600/5 rounded-full blur-[120px] pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-yellow-900/5 rounded-full blur-[100px] pointer-events-none" />
+
+            <div className="w-full max-w-md relative z-10 animate-fadeInUp">
+                {/* Logo / Header */}
+                <div className="text-center mb-10">
+                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border border-yellow-600/30 bg-yellow-600/5 mb-6">
+                        <svg viewBox="0 0 40 40" className="w-8 h-8" fill="none">
+                            <polygon points="20,4 36,32 4,32" stroke="#D4AF37" strokeWidth="1.5" fill="none" />
+                            <circle cx="20" cy="21" r="5" stroke="#D4AF37" strokeWidth="1.5" fill="none" />
+                        </svg>
+                    </div>
+                    <h1 className="text-3xl font-serif font-bold text-white mb-2">
+                        Plataforma <span className="gold-text-gradient">Compañero</span>
+                    </h1>
+                    <p className="text-slate-400 text-sm">Accede con tus credenciales de Hermano</p>
+                </div>
+
+                {/* Form card */}
+                <div className="card-glass rounded-none p-8">
+                    {!hasSupabase && (
+                        <div className="mb-6 p-3 border border-yellow-600/30 bg-yellow-600/5 text-yellow-400 text-xs rounded-none space-y-1">
+                            <strong className="block mb-1">Usuarios demo:</strong>
+                            <div className="text-yellow-400/70 space-y-0.5">
+                                <div><code>admin@demo.com</code> — Vigilante (Maestro)</div>
+                                <div><code>aprendiz1@demo.com</code> — Aprendiz</div>
+                                <div><code>companero@demo.com</code> — Compañero</div>
+                                <div><code>maestro@demo.com</code> — Maestro</div>
+                            </div>
+                            <div className="text-yellow-600/60 mt-1">Contraseña de todos: <code>demo1234</code></div>
+                        </div>
+                    )}
+
+                    <form onSubmit={handleSubmit} className="space-y-5">
+                        <div>
+                            <label className="block text-xs uppercase tracking-widest text-slate-400 mb-2">
+                                Correo electrónico
+                            </label>
+                            <div className="relative">
+                                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="hermano@logia.org"
+                                    className="w-full bg-[#0a0a0a] border border-white/10 text-slate-200 pl-10 pr-4 py-3 text-sm
+                    focus:outline-none focus:border-yellow-600/50 transition-colors placeholder:text-slate-600"
+                                    required
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-xs uppercase tracking-widest text-slate-400 mb-2">
+                                Contraseña
+                            </label>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="••••••••"
+                                    className="w-full bg-[#0a0a0a] border border-white/10 text-slate-200 pl-10 pr-12 py-3 text-sm
+                    focus:outline-none focus:border-yellow-600/50 transition-colors placeholder:text-slate-600"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {error && (
+                            <p className="text-red-400 text-xs border border-red-500/20 bg-red-500/5 p-3">
+                                {error}
+                            </p>
+                        )}
+
+                        <button
+                            type="submit"
+                            disabled={loading}
+                            className="w-full gold-gradient text-black font-semibold py-3 text-sm uppercase tracking-wider
+                hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+                        >
+                            {loading ? 'Verificando...' : 'Entrar al Templo'}
+                        </button>
+                    </form>
+                </div>
+
+                <p className="text-center text-slate-600 text-xs mt-6">
+                    Plataforma Virtual – Grado Compañero · {new Date().getFullYear()}
+                </p>
+            </div>
+        </div>
+    );
+}
