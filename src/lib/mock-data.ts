@@ -24,6 +24,15 @@ export const MOCK_PROFILES: Record<string, Profile> = {
 };
 
 export const MOCK_USERS: MockUser[] = [
+    {
+        id: 'u-admin-test',
+        full_name: 'Vigilante Test',
+        email: 'admin@test.com',
+        password: 'caelum671',
+        role: 'admin',
+        grade_id: 'grade-3',
+        grade_slug: 'maestro',
+    },
     // Vigilantes (admin)
     {
         id: 'u-1',

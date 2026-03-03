@@ -30,13 +30,13 @@ const GRADE_IDS: Record<GradeSlug, string> = {
 
 const defaultCtx: UserContextValue = {
     role: 'student',
-    fullName: 'Hermano Demo',
-    gradeSlug: 'companero',
-    gradeId: 'grade-2',
-    gradeName: 'Compañero',
-    gradeOrder: 2,
+    fullName: '',
+    gradeSlug: 'aprendiz',
+    gradeId: 'grade-1',
+    gradeName: 'Aprendiz',
+    gradeOrder: 1,
     isAdmin: false,
-    canSeeGrade: () => true,
+    canSeeGrade: () => false,
     setUser: () => { },
 };
 
@@ -44,8 +44,8 @@ const UserContext = createContext<UserContextValue>(defaultCtx);
 
 export function UserProvider({ children }: { children: ReactNode }) {
     const [role, setRole] = useState<UserRole>('student');
-    const [fullName, setFullName] = useState('Hermano Demo');
-    const [gradeSlug, setGradeSlug] = useState<GradeSlug>('companero');
+    const [fullName, setFullName] = useState('');
+    const [gradeSlug, setGradeSlug] = useState<GradeSlug>('aprendiz');
 
     useEffect(() => {
         const r = localStorage.getItem('mock_role') as UserRole | null;

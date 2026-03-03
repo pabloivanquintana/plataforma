@@ -95,16 +95,25 @@ export default function LoginPage() {
 
                 {/* Form card */}
                 <div className="card-glass rounded-none p-8">
-                    {!hasSupabase && (
-                        <div className="mb-6 p-3 border border-yellow-600/30 bg-yellow-600/5 text-yellow-400 text-xs rounded-none space-y-1">
-                            <strong className="block mb-1">Usuarios demo:</strong>
-                            <div className="text-yellow-400/70 space-y-0.5">
-                                <div><code>admin@demo.com</code> — Vigilante (Maestro)</div>
-                                <div><code>aprendiz1@demo.com</code> — Aprendiz</div>
-                                <div><code>companero@demo.com</code> — Compañero</div>
-                                <div><code>maestro@demo.com</code> — Maestro</div>
+                    {!hasSupabase ? (
+                        <div className="mb-6 p-4 border border-red-500/30 bg-red-500/5 text-red-400 text-xs rounded-none space-y-2">
+                            <div className="flex items-center gap-2 font-bold uppercase tracking-wider text-[10px]">
+                                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                                Supabase Desconectado (Modo Demo)
                             </div>
-                            <div className="text-yellow-600/60 mt-1">Contraseña de todos: <code>demo1234</code></div>
+                            <p className="text-slate-400 leading-relaxed">
+                                La base de datos real no está configurada en la nube.
+                                Sigue la <a href="#" className="underline text-yellow-500">guía de despliegue</a> para activarla.
+                            </p>
+                            <div className="pt-2 border-t border-white/5 space-y-1">
+                                <strong className="block text-yellow-400/80">Acceso Admin Temporal:</strong>
+                                <div className="text-slate-500"><code>admin@test.com</code> / <code>caelum671</code></div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="mb-6 p-3 border border-green-500/30 bg-green-500/5 text-green-400 text-[10px] uppercase tracking-widest flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full bg-green-500" />
+                            Base de datos conectada
                         </div>
                     )}
 
