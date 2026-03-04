@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { BookOpen, Library, Calendar, ScrollText, ShieldCheck, LogOut, Compass, ChevronDown, Menu, X } from 'lucide-react';
+import { BookOpen, Library, Calendar, ScrollText, ShieldCheck, LogOut, Compass, ChevronDown, Menu, X, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/context/UserContext';
 import { createClient } from '@/lib/supabase/client';
@@ -14,6 +14,7 @@ const NAV_ITEMS = [
     { href: '/app/planchas', label: 'Planchas', Icon: ScrollText },
     { href: '/app/library', label: 'Biblioteca', Icon: Library },
     { href: '/app/calendar', label: 'Calendario', Icon: Calendar },
+    { href: '/app/settings', label: 'Ajustes', Icon: Settings },
 ] as const;
 
 const GRADE_BADGE: Record<string, string> = {

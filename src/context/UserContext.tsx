@@ -50,65 +50,73 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const [initializing, setInitializing] = useState(true);
 
     useEffect(() => {
-        async function syncSession() {
-            const supabase = createClient();
+        const supabase = createClient();
 
-            // 1. Verificar si hay sesión real en Supabase
-            const { data: { user } } = await supabase.auth.getUser();
-            console.log("UserContext sync - Auth User:", user?.email);
+        async function loadProfile(user: any) {
+            if (!user) {
+                setRole('student');
+                setFullName('');
+                setGradeSlug('aprendiz');
+                setInitializing(false);
+                return;
+            }
 
-            if (user) {
-                // Fetch profile
-                const { data: profile, error } = await supabase
-                    .from('profiles')
-                    .select('role, full_name, grades(slug)')
-                    .eq('id', user.id)
-                    .single();
+            console.log("UserContext sync - Auth User:", user.email);
 
-                console.log("UserContext sync - Profile Data:", profile);
-                if (error) console.error("UserContext sync - Profile Error:", error);
+            // Try DB Profile
+            const { data: profile, error } = await supabase
+                .from('profiles')
+                .select('role, full_name, grades(slug)')
+                .eq('id', user.id)
+                .single();
 
-                if (profile) {
-                    // Supabase joins can return an array or a single object depending on config
-                    const gradeData = profile.grades;
-                    const g = (Array.isArray(gradeData) ? gradeData[0]?.slug : (gradeData as any)?.slug) as GradeSlug;
+            if (profile) {
+                console.log("UserContext sync - Profile found in DB:", profile);
+                const gradeData = profile.grades;
+                const g = (Array.isArray(gradeData) ? gradeData[0]?.slug : (gradeData as any)?.slug) as GradeSlug;
 
-                    setRole(profile.role as UserRole);
-                    setFullName(profile.full_name || user.email || '');
-                    setGradeSlug(g || 'aprendiz');
+                setRole(profile.role as UserRole);
+                setFullName(profile.full_name || user.email || '');
+                setGradeSlug(g || 'aprendiz');
 
-                    // Clear mock data if a real session is found
-                    localStorage.removeItem('mock_role');
-                    localStorage.removeItem('mock_name');
-                    localStorage.removeItem('mock_grade');
-                    setInitializing(false);
-                    return;
+                localStorage.removeItem('mock_role');
+                localStorage.removeItem('mock_name');
+                localStorage.removeItem('mock_grade');
+            } else {
+                // Fallback to Metadata
+                const meta = user.user_metadata;
+                console.log("UserContext sync - DB Profile missing or RLS error. Fallback to Meta:", meta);
+                if (meta && meta.role) {
+                    setRole(meta.role as UserRole);
+                    setFullName(meta.full_name || user.email || '');
+                    setGradeSlug((meta.grade_slug as GradeSlug) || 'aprendiz');
                 } else {
-                    // FALLBACK: Si no hay perfil en la tabla, intentar usar metadata de Auth
-                    const meta = user.user_metadata;
-                    if (meta && meta.role) {
-                        console.log("UserContext - Falling back to Auth Metadata:", meta);
-                        setRole(meta.role as UserRole);
-                        setFullName(meta.full_name || user.email || '');
-                        setGradeSlug((meta.grade_slug as GradeSlug) || 'aprendiz');
-                        setInitializing(false);
-                        return;
+                    // Si no hay nada, intentar Mock
+                    const r = localStorage.getItem('mock_role') as UserRole | null;
+                    if (r) {
+                        setRole(r);
+                        setFullName(localStorage.getItem('mock_name') || '');
+                        setGradeSlug((localStorage.getItem('mock_grade') as GradeSlug) || 'aprendiz');
                     }
                 }
             }
-
-            // 2. Si no hay sesión real, intentar recuperar del Mock/LocalStorage
-            const r = localStorage.getItem('mock_role') as UserRole | null;
-            const n = localStorage.getItem('mock_name');
-            const g = localStorage.getItem('mock_grade') as GradeSlug | null;
-
-            if (r) setRole(r);
-            if (n) setFullName(n);
-            if (g) setGradeSlug(g);
             setInitializing(false);
         }
 
-        syncSession();
+        // 1. Initial Load
+        supabase.auth.getUser().then(({ data: { user } }) => loadProfile(user));
+
+        // 2. Listen to changes
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            console.log("Auth State Change:", event);
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+                loadProfile(session?.user);
+            } else if (event === 'SIGNED_OUT') {
+                loadProfile(null);
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const setUser: UserContextValue['setUser'] = ({ role: newRole, name, gradeSlug: newGrade }) => {

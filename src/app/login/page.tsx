@@ -104,20 +104,18 @@ export default function LoginPage() {
             <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-yellow-900/5 rounded-full blur-[100px] pointer-events-none" />
 
             <div className="w-full max-w-md relative z-10 animate-fadeInUp">
-                {/* Logo / Header */}
-                <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-16 h-16 rounded-full border border-yellow-600/30 bg-yellow-600/5 mb-6">
-                        <svg viewBox="0 0 40 40" className="w-8 h-8" fill="none">
-                            <polygon points="20,4 36,32 4,32" stroke="#D4AF37" strokeWidth="1.5" fill="none" />
-                            <circle cx="20" cy="21" r="5" stroke="#D4AF37" strokeWidth="1.5" fill="none" />
-                        </svg>
+                {/* Header / Logo */}
+                <div className="flex flex-col items-center mb-8">
+                    <div className="w-20 h-20 rounded-full border border-yellow-600/30 flex items-center justify-center bg-yellow-600/5 mb-2 shadow-[0_0_30px_rgba(202,138,4,0.1)]">
+                        <div className="w-12 h-12 text-yellow-500">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 3L2 21h20L12 3z" />
+                                <circle cx="12" cy="14" r="3" />
+                                <path d="M12 11v1" />
+                            </svg>
+                        </div>
                     </div>
-                    <h1 className="text-3xl font-serif font-bold text-white mb-2">
-                        Plataforma <span className="gold-text-gradient">Compañero</span>
-                    </h1>
-                    <p className="text-slate-400 text-sm">Accede con tus credenciales de Hermano</p>
                 </div>
-
                 {/* Form card */}
                 <div className="card-glass rounded-none p-8">
                     {!hasSupabase ? (
@@ -203,9 +201,9 @@ export default function LoginPage() {
                     </form>
                 </div>
 
-                <p className="text-center text-slate-600 text-xs mt-6">
-                    Plataforma Virtual – Grado Compañero · {new Date().getFullYear()}
-                </p>
+                <div className="text-center text-[10px] text-slate-600 mt-8 mb-4 border-t border-white/5 pt-6">
+                    2026
+                </div>
             </div>
         </div>
     );
