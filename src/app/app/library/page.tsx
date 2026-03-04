@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
-import { Lock, Loader2 } from 'lucide-react';
+import { Lock, Loader2, Search, Tag } from 'lucide-react';
 import { MOCK_MEDIA, GRADES as MOCK_GRADES } from '@/lib/mock-data';
 import MediaCard from '@/components/MediaCard';
 import MediaPreviewModal from '@/components/MediaPreviewModal';
+import Pagination from '@/components/Pagination';
 import { useUser } from '@/context/UserContext';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -30,8 +31,12 @@ export default function LibraryPage() {
     const [grades, setGrades] = useState<Grade[]>([]);
     const [typeFilter, setTypeFilter] = useState<MediaType | 'all'>('all');
     const [gradeFilter, setGradeFilter] = useState<string>('all');
+    const [search, setSearch] = useState('');
+    const [tagFilter, setTagFilter] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [preview, setPreview] = useState<MediaItem | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
 
@@ -70,14 +75,39 @@ export default function LibraryPage() {
         [canSeeGrade, grades],
     );
 
+    // Derived tags from media items (mock or real)
+    const ALL_TAGS = useMemo(() => {
+        const tags = new Set<string>();
+        mediaItems.forEach(m => (m as any).tags?.forEach((t: string) => tags.add(t)));
+        return Array.from(tags).sort();
+    }, [mediaItems]);
+
     const filtered = useMemo(() => {
         return mediaItems.filter((m) => {
             const accessible = accessibleGradeIds.includes(m.grade_id);
             const matchType = typeFilter === 'all' || m.type === typeFilter;
             const matchGrade = gradeFilter === 'all' || m.grade_id === gradeFilter;
-            return accessible && matchType && matchGrade;
+
+            const q = search.toLowerCase();
+            const matchSearch = !q ||
+                m.title.toLowerCase().includes(q) ||
+                (m.description || '').toLowerCase().includes(q);
+
+            const matchTag = !tagFilter || (m as any).tags?.includes(tagFilter);
+
+            return accessible && matchType && matchGrade && matchSearch && matchTag;
         });
-    }, [accessibleGradeIds, typeFilter, gradeFilter, mediaItems]);
+    }, [accessibleGradeIds, typeFilter, gradeFilter, search, tagFilter, mediaItems]);
+
+    // Reset page on filter change
+    useEffect(() => { setCurrentPage(1); }, [search, typeFilter, gradeFilter, tagFilter]);
+
+    const paginatedItems = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filtered.slice(start, start + itemsPerPage);
+    }, [filtered, currentPage]);
+
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
     // count locked items (not accessible)
     const lockedCount = mediaItems.filter((m) => !accessibleGradeIds.includes(m.grade_id)).length;
@@ -155,10 +185,18 @@ export default function LibraryPage() {
 
             {/* Grid */}
             {filtered.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {filtered.map((item, i) => (
-                        <MediaCard key={item.id} item={item} index={i} onPreview={setPreview} />
-                    ))}
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {paginatedItems.map((item, i) => (
+                            <MediaCard key={item.id} item={item} index={i} onPreview={setPreview} />
+                        ))}
+                    </div>
+
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        onPageChange={setCurrentPage}
+                    />
                 </div>
             ) : (
                 <div className="text-center py-16 text-slate-600 border border-white/5 space-y-2">

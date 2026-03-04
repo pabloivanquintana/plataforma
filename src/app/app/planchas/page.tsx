@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, User, Calendar, Tag, ExternalLink, ScrollText, ChevronRight, Lock, Loader2 } from 'lucide-react';
 import { MOCK_PLANCHAS, GRADES as MOCK_GRADES } from '@/lib/mock-data';
 import MediaPreviewModal from '@/components/MediaPreviewModal';
+import Pagination from '@/components/Pagination';
 import { useUser } from '@/context/UserContext';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -23,9 +24,12 @@ export default function PlanchasPage() {
     const [search, setSearch] = useState('');
     const [yearFilter, setYearFilter] = useState('Todos');
     const [tagFilter, setTagFilter] = useState<string | null>(null);
+    const [authorFilter, setAuthorFilter] = useState('Todos');
     const [gradeFilter, setGradeFilter] = useState<string>('all');
     const [loading, setLoading] = useState(true);
     const [preview, setPreview] = useState<Plancha | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
 
     const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
 
@@ -72,7 +76,11 @@ export default function PlanchasPage() {
 
     // Derived filter options from accessible planchas only
     const ALL_YEARS = ['Todos', ...Array.from(new Set(accessiblePlanchas.map((p) => p.date.slice(0, 4)))).sort().reverse()];
+    const ALL_AUTHORS = ['Todos', ...Array.from(new Set(accessiblePlanchas.map((p) => p.author))).sort()];
     const ALL_TAGS = Array.from(new Set(accessiblePlanchas.flatMap((p) => p.tags))).sort();
+
+    // Quick access tags
+    const QUICK_TAGS = ['Ritual', 'Simbolismo', 'Historia'];
 
     const filtered = useMemo(() => {
         return accessiblePlanchas.filter((p) => {
@@ -85,10 +93,21 @@ export default function PlanchasPage() {
                 p.tags.some((t) => t.toLowerCase().includes(q));
             const matchYear = yearFilter === 'Todos' || p.date.startsWith(yearFilter);
             const matchTag = !tagFilter || p.tags.includes(tagFilter);
+            const matchAuthor = authorFilter === 'Todos' || p.author === authorFilter;
             const matchGrade = gradeFilter === 'all' || p.grade_id === gradeFilter;
-            return matchSearch && matchYear && matchTag && matchGrade;
+            return matchSearch && matchYear && matchTag && matchAuthor && matchGrade;
         }).sort((a, b) => a.order_index - b.order_index);
-    }, [accessiblePlanchas, search, yearFilter, tagFilter, gradeFilter]);
+    }, [accessiblePlanchas, search, yearFilter, tagFilter, authorFilter, gradeFilter]);
+
+    // Reset page on filter change
+    useEffect(() => { setCurrentPage(1); }, [search, yearFilter, tagFilter, authorFilter, gradeFilter]);
+
+    const paginatedItems = useMemo(() => {
+        const start = (currentPage - 1) * itemsPerPage;
+        return filtered.slice(start, start + itemsPerPage);
+    }, [filtered, currentPage]);
+
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
     return (
         <div className="space-y-8">
@@ -149,78 +168,99 @@ export default function PlanchasPage() {
 
                 {/* Year + Tag filters */}
                 <div className="flex flex-wrap items-start gap-6">
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-[10px] uppercase tracking-widest text-slate-500">Año:</span>
-                        {ALL_YEARS.map((y) => (
-                            <button
-                                key={y}
-                                onClick={() => setYearFilter(y)}
-                                className={cn(
-                                    'px-3 py-1.5 text-xs border transition-colors',
-                                    yearFilter === y
-                                        ? 'gold-gradient text-black border-transparent font-semibold'
-                                        : 'text-slate-400 border-white/10 hover:border-yellow-600/30 hover:text-slate-200',
-                                )}
-                            >
-                                {y}
-                            </button>
-                        ))}
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                        <Tag className="w-3 h-3 text-slate-500" />
-                        <button
-                            onClick={() => setTagFilter(null)}
-                            className={cn(
-                                'px-2.5 py-1 text-[10px] border transition-colors uppercase tracking-wide',
-                                !tagFilter
-                                    ? 'text-yellow-400 border-yellow-600/40 bg-yellow-500/8'
-                                    : 'text-slate-500 border-white/8 hover:text-slate-300',
-                            )}
-                        >
-                            Todos
-                        </button>
-                        {ALL_TAGS.map((tag) => (
-                            <button
-                                key={tag}
-                                onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
-                                className={cn(
-                                    'px-2.5 py-1 text-[10px] border transition-colors uppercase tracking-wide',
-                                    tagFilter === tag
-                                        ? 'text-yellow-400 border-yellow-600/40 bg-yellow-500/8'
-                                        : 'text-slate-500 border-white/8 hover:text-slate-300 hover:border-white/20',
-                                )}
-                            >
-                                {tag}
-                            </button>
-                        ))}
-                    </div>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-slate-600">
-                    <span>{filtered.length} {filtered.length === 1 ? 'plancha' : 'planchas'}</span>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] uppercase tracking-widest text-slate-500">Autor:</span>
+                    <select
+                        value={authorFilter}
+                        onChange={(e) => setAuthorFilter(e.target.value)}
+                        className="bg-[#0d0d0d] border border-white/10 text-slate-400 text-xs px-2 py-1.5 focus:outline-none focus:border-yellow-600/30 transition-colors"
+                    >
+                        {ALL_AUTHORS.map(a => <option key={a} value={a}>{a}</option>)}
+                    </select>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                    <Tag className="w-3 h-3 text-slate-500" />
+                    <button
+                        onClick={() => setTagFilter(null)}
+                        className={cn(
+                            'px-2.5 py-1 text-[10px] border transition-colors uppercase tracking-wide',
+                            !tagFilter
+                                ? 'text-yellow-400 border-yellow-600/40 bg-yellow-500/8'
+                                : 'text-slate-500 border-white/8 hover:text-slate-300',
+                        )}
+                    >
+                        Todos
+                    </button>
+                    {/* Quick tags first */}
+                    {QUICK_TAGS.map(tag => (
+                        <button
+                            key={tag}
+                            onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+                            className={cn(
+                                'px-2.5 py-1 text-[10px] border transition-colors uppercase tracking-wide',
+                                tagFilter === tag
+                                    ? 'text-yellow-400 border-yellow-600/40 bg-yellow-500/8'
+                                    : 'text-slate-500 border-white/8 hover:text-yellow-400 hover:border-yellow-600/20',
+                            )}
+                        >
+                            {tag}
+                        </button>
+                    ))}
+                    <div className="w-px h-3 bg-white/10 mx-1 hidden sm:block" />
+                    {ALL_TAGS.filter(t => !QUICK_TAGS.includes(t)).map((tag) => (
+                        <button
+                            key={tag}
+                            onClick={() => setTagFilter(tagFilter === tag ? null : tag)}
+                            className={cn(
+                                'px-2.5 py-1 text-[10px] border transition-colors uppercase tracking-wide',
+                                tagFilter === tag
+                                    ? 'text-yellow-400 border-yellow-600/40 bg-yellow-500/8'
+                                    : 'text-slate-500 border-white/8 hover:text-slate-300 hover:border-white/20',
+                            )}
+                        >
+                            {tag}
+                        </button>
+                    ))}
                 </div>
             </div>
 
-            {/* List */}
-            {filtered.length === 0 ? (
-                <div className="py-16 text-center space-y-3">
-                    <ScrollText className="w-10 h-10 text-slate-700 mx-auto" />
-                    <p className="text-slate-500 text-sm">No hay planchas que coincidan con los filtros.</p>
-                    <button
-                        onClick={() => { setSearch(''); setYearFilter('Todos'); setTagFilter(null); setGradeFilter('all'); }}
-                        className="text-yellow-500 text-xs hover:underline"
-                    >
-                        Limpiar filtros
-                    </button>
-                </div>
-            ) : (
-                <div className="space-y-2">
-                    {filtered.map((plancha, i) => (
-                        <PlanchaRow key={plancha.id} plancha={plancha} index={i} grades={grades} onPreview={setPreview} />
-                    ))}
-                </div>
-            )}
+            <div className="flex items-center justify-between text-xs text-slate-600">
+                <span>{filtered.length} {filtered.length === 1 ? 'plancha' : 'planchas'}</span>
+            </div>
         </div>
+
+            {/* List */ }
+    {
+        filtered.length === 0 ? (
+            <div className="py-16 text-center space-y-3">
+                <ScrollText className="w-10 h-10 text-slate-700 mx-auto" />
+                <p className="text-slate-500 text-sm">No hay planchas que coincidan con los filtros.</p>
+                <button
+                    onClick={() => { setSearch(''); setYearFilter('Todos'); setTagFilter(null); setGradeFilter('all'); }}
+                    className="text-yellow-500 text-xs hover:underline"
+                >
+                    Limpiar filtros
+                </button>
+            </div>
+        ) : (
+        <div className="space-y-4">
+            <div className="space-y-2">
+                {paginatedItems.map((plancha, i) => (
+                    <PlanchaRow key={plancha.id} plancha={plancha} index={i} grades={grades} onPreview={setPreview} />
+                ))}
+            </div>
+
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+            />
+        </div>
+    )
+    }
+        </div >
     );
 }
 
