@@ -15,9 +15,10 @@ const TYPE_CONFIG: Record<MediaType, { label: string; color: string; Icon: React
 interface MediaCardProps {
     item: MediaItem;
     index?: number;
+    onPreview?: (item: MediaItem) => void;
 }
 
-export default function MediaCard({ item, index = 0 }: MediaCardProps) {
+export default function MediaCard({ item, index = 0, onPreview }: MediaCardProps) {
     const [copied, setCopied] = useState(false);
     const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.link;
     const { label, color, Icon } = config;
@@ -56,19 +57,29 @@ export default function MediaCard({ item, index = 0 }: MediaCardProps) {
                 <button
                     onClick={handleCopy}
                     className={cn(
-                        'flex items-center gap-1.5 px-3 py-1.5 text-xs border transition-all duration-200',
-                        copied
-                            ? 'text-green-400 border-green-500/30 bg-green-500/10'
-                            : 'text-slate-400 border-white/10 hover:text-yellow-400 hover:border-yellow-600/30'
+                        'p-2 text-slate-400 border border-white/10 hover:text-yellow-400 hover:border-yellow-600/30 transition-all duration-200',
+                        copied && 'text-green-400 border-green-500/30 bg-green-500/10'
                     )}
+                    title="Copiar link"
                 >
-                    {copied ? <><Check className="w-3 h-3" />¡Copiado!</> : <><Copy className="w-3 h-3" />Copiar link</>}
+                    {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
+                {onPreview && (
+                    <button
+                        onClick={() => onPreview(item)}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs text-slate-400 border border-white/10 hover:text-white hover:border-white/20 transition-all"
+                    >
+                        Ver
+                    </button>
+                )}
                 <a
                     href={item.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs gold-gradient text-black font-semibold hover:opacity-90 transition-opacity"
+                    className={cn(
+                        "flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs gold-gradient text-black font-semibold hover:opacity-90 transition-opacity",
+                        onPreview ? "w-24" : "flex-1"
+                    )}
                 >
                     <ExternalLink className="w-3 h-3" />
                     Abrir

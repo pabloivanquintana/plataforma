@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import Link from 'next/link';
 import { Search, User, Calendar, Tag, ExternalLink, ScrollText, ChevronRight, Lock, Loader2 } from 'lucide-react';
 import { MOCK_PLANCHAS, GRADES as MOCK_GRADES } from '@/lib/mock-data';
+import MediaPreviewModal from '@/components/MediaPreviewModal';
 import { useUser } from '@/context/UserContext';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -24,6 +25,7 @@ export default function PlanchasPage() {
     const [tagFilter, setTagFilter] = useState<string | null>(null);
     const [gradeFilter, setGradeFilter] = useState<string>('all');
     const [loading, setLoading] = useState(true);
+    const [preview, setPreview] = useState<Plancha | null>(null);
 
     const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
 
@@ -214,7 +216,7 @@ export default function PlanchasPage() {
             ) : (
                 <div className="space-y-2">
                     {filtered.map((plancha, i) => (
-                        <PlanchaRow key={plancha.id} plancha={plancha} index={i} grades={grades} />
+                        <PlanchaRow key={plancha.id} plancha={plancha} index={i} grades={grades} onPreview={setPreview} />
                     ))}
                 </div>
             )}
@@ -222,7 +224,7 @@ export default function PlanchasPage() {
     );
 }
 
-function PlanchaRow({ plancha, index, grades }: { plancha: Plancha; index: number; grades: Grade[] }) {
+function PlanchaRow({ plancha, index, grades, onPreview }: { plancha: Plancha; index: number; grades: Grade[]; onPreview: (p: Plancha) => void }) {
     const grade = grades.find((g: Grade) => g.id === plancha.grade_id);
     const gradeBadge = grade ? GRADE_BADGE[grade.slug as GradeSlug] : '';
 
@@ -283,13 +285,13 @@ function PlanchaRow({ plancha, index, grades }: { plancha: Plancha; index: numbe
 
             {/* Actions */}
             <div className="flex flex-row items-center gap-2 w-full sm:w-auto pt-3 sm:pt-0 border-t sm:border-t-0 border-white/5 sm:flex-shrink-0">
-                <Link
-                    href={`/app/planchas/${plancha.id}`}
+                <button
+                    onClick={() => onPreview(plancha)}
                     className="flex items-center justify-center gap-1.5 px-3 py-2 text-xs text-slate-400 border border-white/10 hover:text-slate-200 hover:border-white/20 transition-colors flex-1 sm:flex-none"
                 >
                     Ver
                     <ChevronRight className="w-3 h-3" />
-                </Link>
+                </button>
                 <a
                     href={plancha.resource_url}
                     target="_blank"

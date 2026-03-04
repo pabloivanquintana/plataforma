@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Lock, Loader2 } from 'lucide-react';
 import { MOCK_MEDIA, GRADES as MOCK_GRADES } from '@/lib/mock-data';
 import MediaCard from '@/components/MediaCard';
+import MediaPreviewModal from '@/components/MediaPreviewModal';
 import { useUser } from '@/context/UserContext';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
@@ -30,6 +31,7 @@ export default function LibraryPage() {
     const [typeFilter, setTypeFilter] = useState<MediaType | 'all'>('all');
     const [gradeFilter, setGradeFilter] = useState<string>('all');
     const [loading, setLoading] = useState(true);
+    const [preview, setPreview] = useState<MediaItem | null>(null);
 
     const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
 
@@ -155,7 +157,7 @@ export default function LibraryPage() {
             {filtered.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {filtered.map((item, i) => (
-                        <MediaCard key={item.id} item={item} index={i} />
+                        <MediaCard key={item.id} item={item} index={i} onPreview={setPreview} />
                     ))}
                 </div>
             ) : (
@@ -168,6 +170,16 @@ export default function LibraryPage() {
                         Limpiar filtros
                     </button>
                 </div>
+            )}
+            {/* Modal de Previsualización */}
+            {preview && (
+                <MediaPreviewModal
+                    isOpen={!!preview}
+                    onClose={() => setPreview(null)}
+                    url={preview.url}
+                    title={preview.title}
+                    type={preview.type}
+                />
             )}
         </div>
     );
