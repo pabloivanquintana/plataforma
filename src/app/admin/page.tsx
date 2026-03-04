@@ -283,8 +283,8 @@ export default function AdminPage() {
                     <div className="p-4 border border-blue-500/20 bg-blue-500/5 text-xs text-blue-300 flex items-start gap-3 mb-4">
                         <Users className="w-5 h-5 flex-shrink-0 mt-0.5" />
                         <div>
-                            <p className="font-semibold mb-1">Nota sobre Gestión de Usuarios</p>
-                            <p className="opacity-80">Por seguridad, los nuevos Hermanos deben registrarse o ser creados desde el Dashboard de Supabase. Aquí puedes gestionar sus perfiles, roles y grados una vez creados.</p>
+                            <p className="font-semibold mb-1">Gestión de Usuarios (Solo Lectura)</p>
+                            <p className="opacity-80">Por seguridad, la creación, edición y eliminación de Hermanos se realiza exclusivamente desde el Dashboard de Supabase. Aquí puedes visualizar el estado actual de la Logia.</p>
                         </div>
                     </div>
                     {/* Sección Vigilantes */}
@@ -301,7 +301,7 @@ export default function AdminPage() {
                                     {roleGroup === 'admin' ? 'Vigilantes' : 'Hermanos'}
                                 </div>
                                 {group.map((u) => (
-                                    <ListRow key={u.id} id={u.id} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onDelete={deleteItem} onEdit={() => setModal({ type: 'usuarios', item: u })}>
+                                    <ListRow key={u.id} id={u.id} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onDelete={deleteItem} onEdit={() => setModal({ type: 'usuarios', item: u })} hideActions>
                                         <div className="w-9 h-9 border border-yellow-600/20 bg-yellow-600/8 flex items-center justify-center flex-shrink-0">
                                             <span className="text-sm font-bold text-yellow-500">{u.full_name.charAt(0)}</span>
                                         </div>
@@ -365,23 +365,26 @@ function ListSection({ count, onNew, newLabel, children, hideNew }: { count: str
     );
 }
 
-function ListRow({ id, deleteConfirm, setDeleteConfirm, onDelete, onEdit, children }: {
+function ListRow({ id, deleteConfirm, setDeleteConfirm, onDelete, onEdit, children, hideActions }: {
     id: string; deleteConfirm: string | null; setDeleteConfirm: (id: string | null) => void;
     onDelete: (id: string) => void; onEdit: () => void; children: React.ReactNode;
+    hideActions?: boolean;
 }) {
     return (
         <div className="flex items-start sm:items-center gap-4 p-4 border border-white/5 bg-[#0d0d0d]">
             <div className="flex-1 flex items-start sm:items-center gap-4 min-w-0">
                 {children}
             </div>
-            <div className="flex items-center gap-2 flex-shrink-0 mt-1 sm:mt-0">
-                <button onClick={onEdit} className="p-2 text-slate-500 hover:text-yellow-400 border border-white/5 hover:border-yellow-600/30 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
-                {deleteConfirm === id ? (
-                    <button onClick={() => onDelete(id)} className="px-3 py-1.5 text-xs text-red-400 border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-colors whitespace-nowrap">¿Confirmar?</button>
-                ) : (
-                    <button onClick={() => setDeleteConfirm(id)} className="p-2 text-slate-500 hover:text-red-400 border border-white/5 hover:border-red-500/30 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
-                )}
-            </div>
+            {!hideActions && (
+                <div className="flex items-center gap-2 flex-shrink-0 mt-1 sm:mt-0">
+                    <button onClick={onEdit} className="p-2 text-slate-500 hover:text-yellow-400 border border-white/5 hover:border-yellow-600/30 transition-colors"><Pencil className="w-3.5 h-3.5" /></button>
+                    {deleteConfirm === id ? (
+                        <button onClick={() => onDelete(id)} className="px-3 py-1.5 text-xs text-red-400 border border-red-500/30 bg-red-500/5 hover:bg-red-500/10 transition-colors whitespace-nowrap">¿Confirmar?</button>
+                    ) : (
+                        <button onClick={() => setDeleteConfirm(id)} className="p-2 text-slate-500 hover:text-red-400 border border-white/5 hover:border-red-500/30 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
+                    )}
+                </div>
+            )}
         </div>
     );
 }
