@@ -163,20 +163,54 @@ BEGIN
 
   -- Admin User
   INSERT INTO auth.users (
-    id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, aud, role, instance_id
+    instance_id,
+    id,
+    aud,
+    role,
+    email,
+    encrypted_password,
+    email_confirmed_at,
+    recovery_sent_at,
+    last_sign_in_at,
+    raw_app_meta_data,
+    raw_user_meta_data,
+    created_at,
+    updated_at,
+    confirmation_token,
+    email_change,
+    email_change_token_new,
+    recovery_token,
+    is_super_admin,
+    phone_confirmed_at
   )
   VALUES (
-    gen_random_uuid(), admin_email, pwd_hash, now(), '{"provider":"email","providers":["email"]}', 
-    jsonb_build_object('full_name', admin_name, 'role', 'admin', 'grade_slug', 'maestro'), 
-    now(), now(), 'authenticated', 'authenticated', '00000000-0000-0000-0000-000000000000'
+    '00000000-0000-0000-0000-000000000000',
+    gen_random_uuid(),
+    'authenticated',
+    'authenticated',
+    admin_email,
+    pwd_hash,
+    now(),
+    NULL,
+    now(),
+    '{"provider":"email","providers":["email"]}',
+    jsonb_build_object('full_name', admin_name, 'role', 'admin', 'grade_slug', 'maestro'),
+    now(),
+    now(),
+    '',
+    '',
+    '',
+    '',
+    false,
+    now()
   ) RETURNING id INTO admin_uid;
 
   INSERT INTO auth.identities (id, user_id, identity_data, provider, provider_id, last_sign_in_at, created_at, updated_at)
-  VALUES (gen_random_uuid(), admin_uid, jsonb_build_object('sub', admin_uid, 'email', admin_email), 'email', admin_email, now(), now(), now());
+  VALUES (gen_random_uuid(), admin_uid, jsonb_build_object('sub', admin_uid, 'email', admin_email, 'email_verified', true), 'email', admin_email, now(), now(), now());
 
   INSERT INTO public.profiles (id, full_name, role, grade_id)
   VALUES (admin_uid, admin_name, 'admin', maestro_id)
   ON CONFLICT (id) DO UPDATE SET role = EXCLUDED.role, grade_id = EXCLUDED.grade_id;
 
-  RAISE NOTICE 'Sistema reiniciado y sembrado con éxito.';
+  RAISE NOTICE 'Sistema reiniciado y sembrado con éxito total.';
 END $$;
