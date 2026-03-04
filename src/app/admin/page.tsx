@@ -1,3 +1,5 @@
+'use client';
+
 import { useState, useEffect } from 'react';
 import { Plus, Pencil, Trash2, X, Save, BookOpen, Library, Calendar, ScrollText, User, Users, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
 import { MOCK_TOPICS, MOCK_MEDIA, MOCK_EVENTS, MOCK_PLANCHAS, MOCK_USERS, GRADES as MOCK_GRADES } from '@/lib/mock-data';
