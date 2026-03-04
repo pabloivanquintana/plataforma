@@ -26,62 +26,62 @@ export default function AdminPage() {
 
     const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
 
-    useEffect(() => {
-        async function fetchData() {
-            setLoading(true);
-            if (!hasSupabase) {
-                setTopics(MOCK_TOPICS);
-                setMedia(MOCK_MEDIA);
-                setEvents(MOCK_EVENTS);
-                setPlanchas(MOCK_PLANCHAS);
-                setUsuarios(MOCK_USERS);
-                setGrades(MOCK_GRADES);
-                setLoading(false);
-                return;
-            }
+    const showSaved = () => { setSaved(true); setTimeout(() => setSaved(false), 1500); };
 
-            try {
-                const supabase = createClient();
-                const [tRes, mRes, eRes, pRes, gRes, uRes] = await Promise.all([
-                    supabase.from('topics').select('*').order('order'),
-                    supabase.from('media_items').select('*').order('title'),
-                    supabase.from('events').select('*').order('event_date'),
-                    supabase.from('planchas').select('*').order('order_index'),
-                    supabase.from('grades').select('*').order('slug'),
-                    supabase.from('profiles').select('id, full_name, role, grade_id')
-                ]);
-
-                if (tRes.data) setTopics(tRes.data as any);
-                if (mRes.data) setMedia(mRes.data as any);
-                if (eRes.data) setEvents(eRes.data as any);
-                if (pRes.data) setPlanchas(pRes.data as any);
-                if (gRes.data) setGrades(gRes.data as any);
-
-                // Mapeo simple de perfiles a MockUser type para compatibilidad con la UI actual
-                if (uRes.data) {
-                    const mappedUsers = uRes.data.map(p => {
-                        const grade = gRes.data?.find(g => g.id === p.grade_id);
-                        return {
-                            id: p.id,
-                            full_name: p.full_name || 'Sin nombre',
-                            email: '', // El email está en auth.users, no accesible fácilmente vía profiles sin admin SDK
-                            role: p.role as UserRole,
-                            grade_id: p.grade_id,
-                            grade_slug: (grade?.slug || 'aprendiz') as GradeSlug
-                        };
-                    });
-                    setUsuarios(mappedUsers as any);
-                }
-            } catch (err) {
-                console.error('Error fetching admin data:', err);
-            } finally {
-                setLoading(false);
-            }
+    const fetchData = async (silent = false) => {
+        if (!silent) setLoading(true);
+        if (!hasSupabase) {
+            setTopics(MOCK_TOPICS);
+            setMedia(MOCK_MEDIA);
+            setEvents(MOCK_EVENTS);
+            setPlanchas(MOCK_PLANCHAS);
+            setUsuarios(MOCK_USERS);
+            setGrades(MOCK_GRADES);
+            setLoading(false);
+            return;
         }
+
+        try {
+            const supabase = createClient();
+            const [tRes, mRes, eRes, pRes, gRes, uRes] = await Promise.all([
+                supabase.from('topics').select('*').order('order'),
+                supabase.from('media_items').select('*').order('title'),
+                supabase.from('events').select('*').order('event_date'),
+                supabase.from('planchas').select('*').order('order_index'),
+                supabase.from('grades').select('*').order('slug'),
+                supabase.from('profiles').select('id, full_name, role, grade_id')
+            ]);
+
+            if (tRes.data) setTopics(tRes.data as any);
+            if (mRes.data) setMedia(mRes.data as any);
+            if (eRes.data) setEvents(eRes.data as any);
+            if (pRes.data) setPlanchas(pRes.data as any);
+            if (gRes.data) setGrades(gRes.data as any);
+
+            if (uRes.data) {
+                const mappedUsers = uRes.data.map(p => {
+                    const grade = gRes.data?.find(g => g.id === p.grade_id);
+                    return {
+                        id: p.id,
+                        full_name: p.full_name || 'Sin nombre',
+                        email: '',
+                        role: p.role as UserRole,
+                        grade_id: p.grade_id,
+                        grade_slug: (grade?.slug || 'aprendiz') as GradeSlug
+                    };
+                });
+                setUsuarios(mappedUsers as any);
+            }
+        } catch (err) {
+            console.error('Error fetching admin data:', err);
+        } finally {
+            if (!silent) setLoading(false);
+        }
+    };
+
+    useEffect(() => {
         fetchData();
     }, [hasSupabase]);
-
-    const showSaved = () => { setSaved(true); setTimeout(() => setSaved(false), 1500); };
 
     // GENERIC SAVE
     const handleSave = async (table: string, data: any, id?: string) => {
@@ -104,14 +104,14 @@ export default function AdminPage() {
                 if (error) throw error;
             }
 
-            // Re-fetch only the table that changed (or all for simplicity now)
-            window.location.reload();
+            // Sync state
+            await fetchData(true);
+            showSaved();
         } catch (err) {
             console.error(`Error saving to ${table}:`, err);
             alert('Error al guardar en la base de datos.');
         } finally {
             setModal(null);
-            showSaved();
         }
     };
 
@@ -149,7 +149,7 @@ export default function AdminPage() {
             const supabase = createClient();
             const { error } = await supabase.from(tableMap[activeTab]).delete().eq('id', id);
             if (error) throw error;
-            window.location.reload();
+            await fetchData(true);
         } catch (err) {
             console.error('Error deleting:', err);
             alert('Error al eliminar registro.');
@@ -279,7 +279,14 @@ export default function AdminPage() {
 
             {/* USUARIOS */}
             {activeTab === 'usuarios' && (
-                <ListSection count={`${usuarios.length} usuarios`} onNew={() => setModal({ type: 'usuarios' })} newLabel="Nuevo Usuario">
+                <ListSection count={`${usuarios.length} usuarios`} onNew={() => { }} newLabel="" hideNew>
+                    <div className="p-4 border border-blue-500/20 bg-blue-500/5 text-xs text-blue-300 flex items-start gap-3 mb-4">
+                        <Users className="w-5 h-5 flex-shrink-0 mt-0.5" />
+                        <div>
+                            <p className="font-semibold mb-1">Nota sobre Gestión de Usuarios</p>
+                            <p className="opacity-80">Por seguridad, los nuevos Hermanos deben registrarse o ser creados desde el Dashboard de Supabase. Aquí puedes gestionar sus perfiles, roles y grados una vez creados.</p>
+                        </div>
+                    </div>
                     {/* Sección Vigilantes */}
                     {['admin' as const, 'student' as const].map((roleGroup) => {
                         const group = usuarios.filter((u) => u.role === roleGroup);
@@ -342,14 +349,16 @@ export default function AdminPage() {
 
 // ─── Shared UI ────────────────────────────────────────
 
-function ListSection({ count, onNew, newLabel, children }: { count: string; onNew: () => void; newLabel: string; children: React.ReactNode }) {
+function ListSection({ count, onNew, newLabel, children, hideNew }: { count: string; onNew: () => void; newLabel: string; children: React.ReactNode; hideNew?: boolean }) {
     return (
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <span className="text-xs text-slate-500">{count}</span>
-                <button onClick={onNew} className="flex items-center justify-center gap-2 px-4 py-2 text-xs gold-gradient text-black font-semibold hover:opacity-90 transition-opacity w-full sm:w-auto">
-                    <Plus className="w-3.5 h-3.5" />{newLabel}
-                </button>
+                {!hideNew && (
+                    <button onClick={onNew} className="flex items-center justify-center gap-2 px-4 py-2 text-xs gold-gradient text-black font-semibold hover:opacity-90 transition-opacity w-full sm:w-auto">
+                        <Plus className="w-3.5 h-3.5" />{newLabel}
+                    </button>
+                )}
             </div>
             <div className="space-y-2">{children}</div>
         </div>
