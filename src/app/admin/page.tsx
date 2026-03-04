@@ -213,15 +213,30 @@ export default function AdminPage() {
             {/* TOPICS */}
             {activeTab === 'topics' && (
                 <ListSection count={`${topics.length} temas`} onNew={() => setModal({ type: 'topics' })} newLabel="Nuevo Tema">
-                    {topics.map((topic) => (
-                        <ListRow key={topic.id} id={topic.id} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onDelete={deleteItem} onEdit={() => setModal({ type: 'topics', item: topic })}>
-                            <div className="w-8 h-8 border border-yellow-600/20 flex items-center justify-center text-yellow-500 font-serif font-bold text-sm flex-shrink-0">{topic.order}</div>
-                            <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-slate-200 truncate">{topic.title}</div>
-                                <div className="text-xs text-slate-500 truncate">{topic.description}</div>
-                            </div>
-                        </ListRow>
-                    ))}
+                    {topics.map((topic) => {
+                        const grade = grades.find(g => g.id === topic.grade_id);
+                        return (
+                            <ListRow key={topic.id} id={topic.id} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onDelete={deleteItem} onEdit={() => setModal({ type: 'topics', item: topic })}>
+                                <div className="w-8 h-8 border border-yellow-600/20 flex items-center justify-center text-yellow-500 font-serif font-bold text-sm flex-shrink-0">{topic.order}</div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-3">
+                                        <div className="text-sm font-medium text-slate-200 truncate">{topic.title}</div>
+                                        {grade && (
+                                            <span className={cn(
+                                                "text-[9px] uppercase tracking-wider px-1.5 py-0.5 border flex-shrink-0",
+                                                grade.slug === 'aprendiz' ? "text-stone-400 border-stone-600/30" :
+                                                    grade.slug === 'maestro' ? "text-purple-300 border-purple-600/20" :
+                                                        "text-yellow-400 border-yellow-600/20"
+                                            )}>
+                                                {grade.name}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="text-xs text-slate-500 truncate mt-0.5">{topic.description}</div>
+                                </div>
+                            </ListRow>
+                        );
+                    })}
                 </ListSection>
             )}
 
