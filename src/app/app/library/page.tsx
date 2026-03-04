@@ -19,11 +19,7 @@ const TYPE_FILTERS: { value: MediaType | 'all'; label: string }[] = [
     { value: 'link', label: 'Link' },
 ];
 
-const GRADE_BADGE: Record<GradeSlug, string> = {
-    aprendiz: 'border-stone-500/30 bg-stone-500/8 text-stone-400',
-    companero: 'border-yellow-600/30 bg-yellow-500/8 text-yellow-500',
-    maestro: 'border-purple-500/30 bg-purple-500/8 text-purple-400',
-};
+// Replaced by GradeBadge component
 
 export default function LibraryPage() {
     const { canSeeGrade, gradeName, gradeOrder } = useUser();
@@ -155,7 +151,7 @@ export default function LibraryPage() {
                             className={cn(
                                 'px-3 py-1.5 text-xs border transition-all duration-200',
                                 gradeFilter === g.id
-                                    ? cn(GRADE_BADGE[g.slug as GradeSlug], 'font-semibold')
+                                    ? 'gold-gradient text-black font-semibold border-transparent'
                                     : 'border-white/10 text-slate-400 hover:border-white/20 hover:text-slate-200',
                             )}
                         >
@@ -187,9 +183,18 @@ export default function LibraryPage() {
             {filtered.length > 0 ? (
                 <div className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {paginatedItems.map((item, i) => (
-                            <MediaCard key={item.id} item={item} index={i} onPreview={setPreview} />
-                        ))}
+                        {paginatedItems.map((item, i) => {
+                            const grade = grades.find(g => g.id === item.grade_id);
+                            return (
+                                <MediaCard
+                                    key={item.id}
+                                    item={item}
+                                    index={i}
+                                    grade={grade ? { slug: grade.slug as GradeSlug, name: grade.name } : undefined}
+                                    onPreview={setPreview}
+                                />
+                            );
+                        })}
                     </div>
 
                     <Pagination

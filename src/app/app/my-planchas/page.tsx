@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import type { Plancha, Grade, GradeSlug } from '@/types';
 import MediaPreviewModal from '@/components/MediaPreviewModal';
+import GradeBadge from '@/components/GradeBadge';
 
 const inputClass = "w-full bg-[#0d0d0d] border border-white/10 text-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:border-yellow-600/30 transition-colors placeholder:text-slate-600";
 const selectClass = "w-full bg-[#0d0d0d] border border-white/10 text-slate-200 px-4 py-2.5 text-sm focus:outline-none focus:border-yellow-600/30 transition-colors";
@@ -140,9 +141,15 @@ export default function MyPlanchasPage() {
                             className="group p-5 border border-white/5 bg-[#0d0d0d] hover:border-yellow-600/20 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4"
                         >
                             <div className="flex-1 min-w-0">
-                                <h3 className="font-serif font-bold text-slate-200 group-hover:text-white transition-colors">
-                                    {plancha.title}
-                                </h3>
+                                <div className="flex items-center gap-3">
+                                    <h3 className="font-serif font-bold text-slate-200 group-hover:text-white transition-colors">
+                                        {plancha.title}
+                                    </h3>
+                                    {(() => {
+                                        const grade = grades.find(g => g.id === plancha.grade_id);
+                                        return grade && <GradeBadge slug={grade.slug as GradeSlug} name={grade.name} />;
+                                    })()}
+                                </div>
                                 <div className="flex items-center gap-4 mt-2 text-xs text-slate-500">
                                     <span className="flex items-center gap-1.5"><Calendar className="w-3.5 h-3.5" />{plancha.date}</span>
                                     <span className="flex items-center gap-1.5"><Tag className="w-3.5 h-3.5" />{plancha.tags.join(', ')}</span>

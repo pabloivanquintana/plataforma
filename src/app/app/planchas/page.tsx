@@ -9,13 +9,10 @@ import Pagination from '@/components/Pagination';
 import { useUser } from '@/context/UserContext';
 import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
+import GradeBadge from '@/components/GradeBadge';
 import type { Plancha, Grade, GradeSlug } from '@/types';
 
-const GRADE_BADGE: Record<GradeSlug, string> = {
-    aprendiz: 'border-stone-500/30 bg-stone-500/8 text-stone-400',
-    companero: 'border-yellow-600/30 bg-yellow-500/8 text-yellow-500',
-    maestro: 'border-purple-500/30 bg-purple-500/8 text-purple-400',
-};
+// Replaced by GradeBadge component
 
 export default function PlanchasPage() {
     const { canSeeGrade, gradeName } = useUser();
@@ -145,7 +142,7 @@ export default function PlanchasPage() {
                             className={cn(
                                 'px-3 py-1.5 text-xs border transition-colors',
                                 gradeFilter === g.id
-                                    ? cn(GRADE_BADGE[g.slug as GradeSlug], 'font-semibold')
+                                    ? 'gold-gradient text-black border-transparent font-semibold'
                                     : 'text-slate-400 border-white/10 hover:border-white/20 hover:text-slate-200',
                             )}
                         >
@@ -265,7 +262,6 @@ export default function PlanchasPage() {
 
 function PlanchaRow({ plancha, index, grades, onPreview }: { plancha: Plancha; index: number; grades: Grade[]; onPreview: (p: Plancha) => void }) {
     const grade = grades.find((g: Grade) => g.id === plancha.grade_id);
-    const gradeBadge = grade ? GRADE_BADGE[grade.slug as GradeSlug] : '';
 
     return (
         <div
@@ -285,9 +281,7 @@ function PlanchaRow({ plancha, index, grades, onPreview }: { plancha: Plancha; i
                             {plancha.title}
                         </h3>
                         {grade && (
-                            <span className={cn('text-[9px] uppercase tracking-wider px-1.5 py-0.5 border flex-shrink-0', gradeBadge)}>
-                                {grade.name}
-                            </span>
+                            <GradeBadge slug={grade.slug as GradeSlug} name={grade.name} />
                         )}
                     </div>
                 </div>
@@ -300,9 +294,7 @@ function PlanchaRow({ plancha, index, grades, onPreview }: { plancha: Plancha; i
                         {plancha.title}
                     </h3>
                     {grade && (
-                        <span className={cn('text-[9px] uppercase tracking-wider px-1.5 py-0.5 border flex-shrink-0', gradeBadge)}>
-                            {grade.name}
-                        </span>
+                        <GradeBadge slug={grade.slug as GradeSlug} name={grade.name} />
                     )}
                 </div>
                 <div className="flex items-center gap-3 text-xs text-slate-500 mb-2">

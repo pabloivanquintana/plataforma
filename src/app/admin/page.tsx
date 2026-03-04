@@ -8,6 +8,7 @@ import type { Topic, MediaItem, CalendarEvent, Grade, Plancha, MockUser, GradeSl
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { createClient } from '@/lib/supabase/client';
+import GradeBadge from '@/components/GradeBadge';
 
 type Tab = 'topics' | 'media' | 'events' | 'planchas' | 'usuarios';
 
@@ -222,14 +223,7 @@ export default function AdminPage() {
                                     <div className="flex items-center gap-3">
                                         <div className="text-sm font-medium text-slate-200 truncate">{topic.title}</div>
                                         {grade && (
-                                            <span className={cn(
-                                                "text-[9px] uppercase tracking-wider px-1.5 py-0.5 border flex-shrink-0",
-                                                grade.slug === 'aprendiz' ? "text-stone-400 border-stone-600/30" :
-                                                    grade.slug === 'maestro' ? "text-purple-300 border-purple-600/20" :
-                                                        "text-yellow-400 border-yellow-600/20"
-                                            )}>
-                                                {grade.name}
-                                            </span>
+                                            <GradeBadge slug={grade.slug as GradeSlug} name={grade.name} />
                                         )}
                                     </div>
                                     <div className="text-xs text-slate-500 truncate mt-0.5">{topic.description}</div>
@@ -247,7 +241,13 @@ export default function AdminPage() {
                         <ListRow key={item.id} id={item.id} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onDelete={deleteItem} onEdit={() => setModal({ type: 'media', item })}>
                             <span className="text-[10px] uppercase tracking-wider border border-white/10 px-2 py-0.5 text-slate-400 flex-shrink-0">{item.type}</span>
                             <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-slate-200 truncate">{item.title}</div>
+                                <div className="flex items-center gap-3">
+                                    <div className="text-sm font-medium text-slate-200 truncate">{item.title}</div>
+                                    {(() => {
+                                        const grade = grades.find(g => g.id === item.grade_id);
+                                        return grade && <GradeBadge slug={grade.slug as GradeSlug} name={grade.name} />;
+                                    })()}
+                                </div>
                                 <div className="text-xs text-slate-500 truncate">{item.description}</div>
                             </div>
                         </ListRow>
@@ -279,9 +279,15 @@ export default function AdminPage() {
                     {planchas.map((pl) => (
                         <ListRow key={pl.id} id={pl.id} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onDelete={deleteItem} onEdit={() => setModal({ type: 'planchas', item: pl })}>
                             <div className="flex-1 min-w-0">
-                                <div className="text-sm font-medium text-slate-200 truncate">{pl.title}</div>
-                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
-                                    <span className="flex items-center gap-1 flex-shrink-0"><User className="w-3 h-3" />{pl.author}</span>
+                                <div className="flex items-center gap-3">
+                                    <div className="text-sm font-medium text-slate-200 truncate">{pl.title}</div>
+                                    {(() => {
+                                        const grade = grades.find(g => g.id === pl.grade_id);
+                                        return grade && <GradeBadge slug={grade.slug as GradeSlug} name={grade.name} />;
+                                    })()}
+                                </div>
+                                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500 mt-1">
+                                    <span className="flex items-center gap-1 flex-shrink-0"><User className="w-3" />{pl.author}</span>
                                     <span className="flex-shrink-0">{pl.date.slice(0, 4)}</span>
                                     <span className="truncate">{pl.tags.slice(0, 2).join(', ')}</span>
                                 </div>

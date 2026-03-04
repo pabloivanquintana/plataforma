@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { ExternalLink, Copy, Check, FileText, Video, Link, Volume2 } from 'lucide-react';
 import { cn, copyToClipboard } from '@/lib/utils';
-import type { MediaItem, MediaType } from '@/types';
+import type { MediaItem, MediaType, GradeSlug } from '@/types';
+import GradeBadge from './GradeBadge';
 
 const TYPE_CONFIG: Record<MediaType, { label: string; color: string; Icon: React.ElementType }> = {
     pdf: { label: 'PDF', color: 'text-red-400 bg-red-500/10 border-red-500/20', Icon: FileText },
@@ -15,10 +16,11 @@ const TYPE_CONFIG: Record<MediaType, { label: string; color: string; Icon: React
 interface MediaCardProps {
     item: MediaItem;
     index?: number;
+    grade?: { slug: GradeSlug; name: string };
     onPreview?: (item: MediaItem) => void;
 }
 
-export default function MediaCard({ item, index = 0, onPreview }: MediaCardProps) {
+export default function MediaCard({ item, index = 0, grade, onPreview }: MediaCardProps) {
     const [copied, setCopied] = useState(false);
     const config = TYPE_CONFIG[item.type] || TYPE_CONFIG.link;
     const { label, color, Icon } = config;
@@ -42,6 +44,9 @@ export default function MediaCard({ item, index = 0, onPreview }: MediaCardProps
                     <Icon className="w-3 h-3" />
                     {label}
                 </div>
+                {grade && (
+                    <GradeBadge slug={grade.slug} name={grade.name} />
+                )}
             </div>
 
             {/* Content */}
