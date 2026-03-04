@@ -106,29 +106,19 @@ export default function TopicsPage() {
                         </div>
 
                         {topics.map((topic, i) => (
-                            <Link key={topic.id} href={`/app/topics/${topic.id}`}>
-                                <div
-                                    className="group flex items-center gap-5 p-5 border border-white/5 bg-[#0d0d0d] hover:border-yellow-600/30 hover:bg-[#111] transition-all duration-300 animate-fadeInUp"
-                                    style={{ animationDelay: `${i * 40}ms` }}
-                                >
-                                    <div className="flex-shrink-0 w-10 h-10 border border-yellow-600/20 bg-yellow-600/5 flex items-center justify-center">
-                                        <span className="text-yellow-500 font-serif font-bold text-sm">{topic.order}</span>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <h2 className="font-medium text-slate-200 group-hover:text-yellow-300 transition-colors">{topic.title}</h2>
-                                        {topic.description && <p className="text-xs text-slate-500 mt-0.5 line-clamp-1">{topic.description}</p>}
-                                    </div>
-                                    <div className="flex-shrink-0 flex items-center gap-4 text-xs text-slate-600">
-                                        {topic.resources && topic.resources.length > 0 && (
-                                            <span className="flex items-center gap-1.5">
-                                                <FileText className="w-3 h-3" />
-                                                {topic.resources.length} rec.
-                                            </span>
-                                        )}
-                                        <ChevronRight className="w-4 h-4 group-hover:text-yellow-500 group-hover:translate-x-0.5 transition-all" />
-                                    </div>
+                            <div
+                                key={topic.id}
+                                className="group flex items-start gap-5 p-5 border border-white/5 bg-[#0d0d0d] transition-all duration-300 animate-fadeInUp"
+                                style={{ animationDelay: `${i * 40}ms` }}
+                            >
+                                <div className="flex-shrink-0 w-10 h-10 border border-yellow-600/20 bg-yellow-600/5 flex items-center justify-center mt-0.5">
+                                    <span className="text-yellow-500 font-serif font-bold text-sm">{topic.order}</span>
                                 </div>
-                            </Link>
+                                <div className="flex-1 min-w-0">
+                                    <h2 className="font-medium text-slate-200">{topic.title}</h2>
+                                    {topic.description && <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">{topic.description}</p>}
+                                </div>
+                            </div>
                         ))}
                     </section>
                 );
