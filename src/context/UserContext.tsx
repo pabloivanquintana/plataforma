@@ -135,8 +135,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const isAdmin = role === 'admin';
     const gradeOrder = GRADE_ORDER[gradeSlug];
     const canSeeGrade = (slug: GradeSlug) => {
-        if (isAdmin) return true; // Admins ven TODO
-        return GRADE_ORDER[slug] <= gradeOrder;
+        if (isAdmin || gradeSlug === 'maestro') return true; // Admins y Maestros ven TODO
+        return gradeSlug === slug; // Otros solo ven su propio grado
     };
 
     return (

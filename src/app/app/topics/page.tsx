@@ -17,10 +17,11 @@ const GRADE_LABEL: Record<GradeSlug, { label: string; color: string }> = {
 };
 
 export default function TopicsPage() {
-    const { canSeeGrade, gradeName, gradeSlug } = useUser();
+    const { canSeeGrade, gradeName, gradeSlug, isAdmin } = useUser();
     const [topics, setTopics] = useState<Topic[]>([]);
     const [grades, setGrades] = useState<Grade[]>([]);
     const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState<GradeSlug>(gradeSlug);
 
     const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
 
@@ -53,17 +54,30 @@ export default function TopicsPage() {
         fetchData();
     }, [hasSupabase]);
 
-    // Agrupar temas por grado y filtrar los que puede ver el usuario
-    const grouped = useMemo(() => {
-        return grades.map((grade) => ({
-            grade,
-            canSee: canSeeGrade(grade.slug as GradeSlug),
-            topics: topics.filter((t) => t.grade_id === grade.id),
-        })).filter((g) => g.topics.length > 0);
-    }, [canSeeGrade, grades, topics]);
+    // Ensure activeTab is set correctly once gradeSlug is available
+    useEffect(() => {
+        if (gradeSlug) setActiveTab(gradeSlug);
+    }, [gradeSlug]);
 
-    const visibleTopics = grouped.filter((g) => g.canSee).flatMap((g) => g.topics);
-    const totalResources = visibleTopics.reduce((a, t) => a + (t.resources?.length ?? 0), 0);
+    const isMaestroOrAdmin = isAdmin || gradeSlug === 'maestro';
+
+    const filteredGrades = useMemo(() => {
+        if (isMaestroOrAdmin) return grades.sort((a, b) => GRADE_ORDER[a.slug as GradeSlug] - GRADE_ORDER[b.slug as GradeSlug]);
+        return grades.filter(g => g.slug === gradeSlug);
+    }, [grades, isMaestroOrAdmin, gradeSlug]);
+
+    const currentGrade = grades.find(g => g.slug === activeTab);
+    const currentTopics = topics.filter(t => t.grade_id === currentGrade?.id);
+    const totalResources = currentTopics.reduce((a, t) => a + (t.resources?.length ?? 0), 0);
+
+    if (loading) {
+        return (
+            <div className="py-20 flex flex-col items-center justify-center gap-4">
+                <Loader2 className="w-8 h-8 animate-spin text-yellow-500/50" />
+                <p className="text-xs uppercase tracking-widest text-slate-500">Cargando programa...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">
@@ -75,54 +89,70 @@ export default function TopicsPage() {
                         <h1 className="text-3xl font-serif font-bold text-white">
                             Programa de <span className="gold-text-gradient">Estudio</span>
                         </h1>
-                        <p className="text-slate-400 mt-2 text-sm">
-                            {visibleTopics.length} {visibleTopics.length === 1 ? 'tema' : 'temas'} disponibles según tu grado.
-                        </p>
-                    </div>
-                    <div className="hidden md:flex items-center gap-2 text-slate-500 text-xs">
-                        <BookOpen className="w-4 h-4" />
-                        <span>{totalResources} recursos</span>
                     </div>
                 </div>
             </header>
 
-            {/* Topics grouped by grade */}
-            {grouped.filter(g => g.canSee).map(({ grade, topics }) => {
-                const slug = grade.slug as GradeSlug;
-                const cfg = GRADE_LABEL[slug];
-                const userOrder = GRADE_ORDER[gradeSlug];
-                const gradeOrder = GRADE_ORDER[slug];
-
-                return (
-                    <section key={grade.id} className="space-y-2">
-                        {/* Grade header */}
-                        <div className="flex items-center gap-3 mb-3">
-                            <span className={cn('text-[10px] uppercase tracking-widest px-2.5 py-1 border', cfg.color)}>
-                                {cfg.label}
-                            </span>
-                            {gradeOrder > userOrder && (
-                                <span className="text-[10px] text-slate-600">Acceso por jerarquía</span>
+            {/* Tabs for Maestro/Admin */}
+            {isMaestroOrAdmin && (
+                <div className="flex items-center gap-1 border-b border-white/5 pb-px">
+                    {filteredGrades.map((g) => (
+                        <button
+                            key={g.id}
+                            onClick={() => setActiveTab(g.slug as GradeSlug)}
+                            className={cn(
+                                "px-6 py-3 text-xs uppercase tracking-widest font-bold transition-all relative",
+                                activeTab === g.slug
+                                    ? "text-yellow-500"
+                                    : "text-slate-500 hover:text-slate-300"
                             )}
-                        </div>
+                        >
+                            {g.name}
+                            {activeTab === g.slug && (
+                                <div className="absolute bottom-0 left-0 right-0 h-0.5 gold-gradient" />
+                            )}
+                        </button>
+                    ))}
+                </div>
+            )}
 
-                        {topics.map((topic, i) => (
+            {/* Content List */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-sm font-serif italic text-slate-400">
+                        {isMaestroOrAdmin ? `Mostrando temas de ${currentGrade?.name}` : "Temas de tu grado"}
+                    </h2>
+                    <div className="flex items-center gap-2 text-slate-600 text-[10px] uppercase tracking-wider">
+                        <BookOpen className="w-3.5 h-3.5" />
+                        <span>{totalResources} recursos</span>
+                    </div>
+                </div>
+
+                {currentTopics.length === 0 ? (
+                    <div className="py-20 text-center border border-dashed border-white/10 rounded-lg">
+                        <FileText className="w-10 h-10 text-slate-800 mx-auto mb-4" />
+                        <p className="text-slate-500 text-sm">No existen temas cargados para este grado aún.</p>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 gap-3">
+                        {currentTopics.map((topic, i) => (
                             <div
                                 key={topic.id}
-                                className="group flex items-start gap-5 p-5 border border-white/5 bg-[#0d0d0d] transition-all duration-300 animate-fadeInUp"
+                                className="group flex items-start gap-5 p-5 border border-white/5 bg-[#0d0d0d] hover:border-yellow-600/20 transition-all duration-300 animate-fadeInUp"
                                 style={{ animationDelay: `${i * 40}ms` }}
                             >
                                 <div className="flex-shrink-0 w-10 h-10 border border-yellow-600/20 bg-yellow-600/5 flex items-center justify-center mt-0.5">
                                     <span className="text-yellow-500 font-serif font-bold text-sm">{topic.order}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <h2 className="font-medium text-slate-200">{topic.title}</h2>
-                                    {topic.description && <p className="text-sm text-slate-400 mt-1.5 leading-relaxed">{topic.description}</p>}
+                                    <h3 className="font-medium text-slate-200 group-hover:text-yellow-500/90 transition-colors uppercase tracking-wide text-sm">{topic.title}</h3>
+                                    {topic.description && <p className="text-xs text-slate-500 mt-2 leading-relaxed">{topic.description}</p>}
                                 </div>
                             </div>
                         ))}
-                    </section>
-                );
-            })}
+                    </div>
+                )}
+            </div>
         </div>
     );
 }
