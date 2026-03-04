@@ -4,10 +4,10 @@ import { useState, useMemo, useEffect } from 'react';
 import {
     format, startOfMonth, endOfMonth, eachDayOfInterval,
     startOfWeek, endOfWeek, isSameMonth, isSameDay, isToday,
-    addMonths, subMonths, parseISO
+    addMonths, subMonths, addYears, subYears, parseISO, isSameYear
 } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, Calendar, List, Loader2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Calendar, List, Loader2 } from 'lucide-react';
 import { MOCK_EVENTS } from '@/lib/mock-data';
 import { useUser } from '@/context/UserContext';
 import { createClient } from '@/lib/supabase/client';
@@ -75,7 +75,8 @@ export default function CalendarPage() {
 
     // Events grouped by month for list view (current year)
     const eventsByMonth = useMemo(() => {
-        const sorted = [...events].sort(
+        const currentYearEvents = events.filter(e => isSameYear(parseISO(e.event_date), currentDate));
+        const sorted = [...currentYearEvents].sort(
             (a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime()
         );
         const groups: Record<string, typeof events> = {};
@@ -85,7 +86,7 @@ export default function CalendarPage() {
             groups[key].push(e);
         });
         return groups;
-    }, [events]);
+    }, [events, currentDate]);
 
     return (
         <div className="space-y-6">
@@ -119,23 +120,46 @@ export default function CalendarPage() {
                 </div>
             </header>
 
-            {/* Month navigation */}
-            <div className="flex items-center justify-between">
-                <button
-                    onClick={() => { setCurrentDate(subMonths(currentDate, 1)); setSelectedDay(null); }}
-                    className="p-2 border border-white/10 hover:border-yellow-600/30 text-slate-400 hover:text-yellow-400 transition-all"
-                >
-                    <ChevronLeft className="w-4 h-4" />
-                </button>
-                <h2 className="text-lg font-serif font-semibold text-white capitalize">
-                    {format(currentDate, 'MMMM yyyy', { locale: es })}
+            {/* Navigation */}
+            <div className="flex items-center justify-between bg-[#0d0d0d] border border-white/5 p-2">
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => { setCurrentDate(subYears(currentDate, 1)); setSelectedDay(null); }}
+                        className="p-2 border border-white/10 hover:border-yellow-600/30 text-slate-500 hover:text-yellow-400 transition-all group"
+                        title="Año anterior"
+                    >
+                        <ChevronsLeft className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => { setCurrentDate(subMonths(currentDate, 1)); setSelectedDay(null); }}
+                        className="p-2 border border-white/10 hover:border-yellow-600/30 text-slate-400 hover:text-yellow-400 transition-all"
+                        title="Mes anterior"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+                </div>
+
+                <h2 className="text-lg font-serif font-semibold text-white capitalize flex items-center gap-3">
+                    <span className="gold-text-gradient">{format(currentDate, 'MMMM', { locale: es })}</span>
+                    <span className="text-slate-500 font-sans font-light">{format(currentDate, 'yyyy')}</span>
                 </h2>
-                <button
-                    onClick={() => { setCurrentDate(addMonths(currentDate, 1)); setSelectedDay(null); }}
-                    className="p-2 border border-white/10 hover:border-yellow-600/30 text-slate-400 hover:text-yellow-400 transition-all"
-                >
-                    <ChevronRight className="w-4 h-4" />
-                </button>
+
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => { setCurrentDate(addMonths(currentDate, 1)); setSelectedDay(null); }}
+                        className="p-2 border border-white/10 hover:border-yellow-600/30 text-slate-400 hover:text-yellow-400 transition-all"
+                        title="Mes siguiente"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => { setCurrentDate(addYears(currentDate, 1)); setSelectedDay(null); }}
+                        className="p-2 border border-white/10 hover:border-yellow-600/30 text-slate-500 hover:text-yellow-400 transition-all group"
+                        title="Año siguiente"
+                    >
+                        <ChevronsRight className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
 
             {view === 'month' ? (
@@ -220,34 +244,42 @@ export default function CalendarPage() {
             ) : (
                 /* List view */
                 <div className="space-y-6">
-                    {Object.entries(eventsByMonth).map(([month, monthEvents]) => (
-                        <div key={month}>
-                            <h3 className="text-xs uppercase tracking-widest text-slate-500 mb-3 capitalize">{month}</h3>
-                            <div className="space-y-2">
-                                {monthEvents.map((ev) => (
-                                    <div key={ev.id} className="flex items-start gap-4 p-4 border border-white/5 bg-[#0d0d0d] hover:border-yellow-600/20 transition-all">
-                                        <div className="flex-shrink-0 text-center w-12">
-                                            <div className="text-2xl font-serif font-bold text-yellow-500 leading-none">
-                                                {format(parseISO(ev.event_date), 'd')}
+                    {Object.keys(eventsByMonth).length > 0 ? (
+                        Object.entries(eventsByMonth).map(([month, monthEvents]) => (
+                            <div key={month}>
+                                <h3 className="text-xs uppercase tracking-widest text-slate-500 mb-3 capitalize">{month}</h3>
+                                <div className="space-y-2">
+                                    {monthEvents.map((ev) => (
+                                        <div key={ev.id} className="flex items-start gap-4 p-4 border border-white/5 bg-[#0d0d0d] hover:border-yellow-600/20 transition-all">
+                                            <div className="flex-shrink-0 text-center w-12">
+                                                <div className="text-2xl font-serif font-bold text-yellow-500 leading-none">
+                                                    {format(parseISO(ev.event_date), 'd')}
+                                                </div>
+                                                <div className="text-[10px] text-slate-500 uppercase mt-0.5">
+                                                    {format(parseISO(ev.event_date), 'EEE', { locale: es })}
+                                                </div>
                                             </div>
-                                            <div className="text-[10px] text-slate-500 uppercase mt-0.5">
-                                                {format(parseISO(ev.event_date), 'EEE', { locale: es })}
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={cn('text-[10px] font-semibold uppercase tracking-wide border px-1.5 py-0.5', EVENT_TYPE_BADGES[ev.event_type])}>
+                                                        {ev.event_type}
+                                                    </span>
+                                                </div>
+                                                <div className="text-sm font-medium text-slate-200">{ev.title}</div>
+                                                {ev.description && <p className="text-xs text-slate-500 mt-1">{ev.description}</p>}
                                             </div>
                                         </div>
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className={cn('text-[10px] font-semibold uppercase tracking-wide border px-1.5 py-0.5', EVENT_TYPE_BADGES[ev.event_type])}>
-                                                    {ev.event_type}
-                                                </span>
-                                            </div>
-                                            <div className="text-sm font-medium text-slate-200">{ev.title}</div>
-                                            {ev.description && <p className="text-xs text-slate-500 mt-1">{ev.description}</p>}
-                                        </div>
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="py-20 text-center border border-white/5 bg-[#0d0d0d]/50">
+                            <Calendar className="w-10 h-10 text-slate-800 mx-auto mb-4" />
+                            <p className="text-slate-500 font-medium">No existen eventos cargados para este año</p>
+                            <p className="text-xs text-slate-600 mt-1">Intenta navegar a otro año para ver las actividades programadas.</p>
                         </div>
-                    ))}
+                    )}
                 </div>
             )}
         </div>
