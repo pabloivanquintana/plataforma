@@ -263,7 +263,6 @@ export default function AdminPage() {
                 <ListSection count={`${planchas.length} planchas`} onNew={() => setModal({ type: 'planchas' })} newLabel="Nueva Plancha">
                     {planchas.map((pl) => (
                         <ListRow key={pl.id} id={pl.id} deleteConfirm={deleteConfirm} setDeleteConfirm={setDeleteConfirm} onDelete={deleteItem} onEdit={() => setModal({ type: 'planchas', item: pl })}>
-                            <div className="w-8 h-8 border border-yellow-600/20 flex items-center justify-center text-yellow-500/70 font-serif font-bold text-sm flex-shrink-0">{pl.order_index}</div>
                             <div className="flex-1 min-w-0">
                                 <div className="text-sm font-medium text-slate-200 truncate">{pl.title}</div>
                                 <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
@@ -464,26 +463,22 @@ function EventForm({ event, grades, onSave, onCancel }: { event?: CalendarEvent;
 function PlanchaForm({ plancha, grades, onSave, onCancel }: { plancha?: Plancha; grades: Grade[]; onSave: (d: Partial<Plancha>) => void; onCancel: () => void }) {
     const [title, setTitle] = useState(plancha?.title ?? '');
     const [author, setAuthor] = useState(plancha?.author ?? '');
-    const [date, setDate] = useState(plancha?.date ?? String(new Date().getFullYear()));
+    const [date, setDate] = useState(plancha?.date ?? new Date().toISOString().split('T')[0]);
     const [description, setDescription] = useState(plancha?.description ?? '');
     const [tags, setTags] = useState(plancha?.tags?.join(', ') ?? '');
     const [resourceUrl, setResourceUrl] = useState(plancha?.resource_url ?? '');
-    const [orderIndex, setOrderIndex] = useState(String(plancha?.order_index ?? ''));
     const [gradeId, setGradeId] = useState(plancha?.grade_id ?? grades.find(g => g.slug === 'aprendiz')?.id ?? grades[0]?.id ?? '');
     return (
-        <form onSubmit={(e) => { e.preventDefault(); onSave({ title, author, date, description, tags: tags.split(',').map((t) => t.trim()).filter(Boolean), resource_url: resourceUrl, order_index: Number(orderIndex), grade_id: gradeId }); }} className="space-y-4">
+        <form onSubmit={(e) => { e.preventDefault(); onSave({ title, author, date, description, tags: tags.split(',').map((t) => t.trim()).filter(Boolean), resource_url: resourceUrl, grade_id: gradeId }); }} className="space-y-4">
             <FormField label="Título"><input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} required /></FormField>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField label="Autor"><input value={author} onChange={(e) => setAuthor(e.target.value)} className={inputClass} placeholder="H.·. Nombre A." required /></FormField>
-                <FormField label="Año"><input value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} placeholder="2024 o 2024-03-15" required /></FormField>
+                <FormField label="Fecha"><input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} required /></FormField>
             </div>
             <FormField label="Descripción"><textarea value={description} onChange={(e) => setDescription(e.target.value)} className={cn(inputClass, 'resize-none')} rows={3} /></FormField>
             <FormField label="Etiquetas (separadas por coma)"><input value={tags} onChange={(e) => setTags(e.target.value)} className={inputClass} placeholder="ritual, simbolismo, historia" /></FormField>
             <FormField label="URL del documento"><input value={resourceUrl} onChange={(e) => setResourceUrl(e.target.value)} className={inputClass} type="url" placeholder="https://drive.google.com/..." required /></FormField>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <FormField label="Orden"><input type="number" value={orderIndex} onChange={(e) => setOrderIndex(e.target.value)} className={inputClass} min={1} required /></FormField>
-                <FormField label="Grado"><select value={gradeId} onChange={(e) => setGradeId(e.target.value)} className={selectClass}>{grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></FormField>
-            </div>
+            <FormField label="Grado"><select value={gradeId} onChange={(e) => setGradeId(e.target.value)} className={selectClass}>{grades.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}</select></FormField>
             <FormActions onCancel={onCancel} />
         </form>
     );
