@@ -1,73 +1,168 @@
-'use client';
-
-import { useState } from 'react';
-import { Plus, Pencil, Trash2, X, Save, BookOpen, Library, Calendar, ScrollText, User, Users, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { MOCK_TOPICS, MOCK_MEDIA, MOCK_EVENTS, MOCK_PLANCHAS, MOCK_USERS, GRADES } from '@/lib/mock-data';
+import { useState, useEffect } from 'react';
+import { Plus, Pencil, Trash2, X, Save, BookOpen, Library, Calendar, ScrollText, User, Users, Eye, EyeOff, ShieldCheck, Loader2 } from 'lucide-react';
+import { MOCK_TOPICS, MOCK_MEDIA, MOCK_EVENTS, MOCK_PLANCHAS, MOCK_USERS, GRADES as MOCK_GRADES } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
 import type { Topic, MediaItem, CalendarEvent, Grade, Plancha, MockUser, GradeSlug, UserRole } from '@/types';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { createClient } from '@/lib/supabase/client';
 
 type Tab = 'topics' | 'media' | 'events' | 'planchas' | 'usuarios';
 
 export default function AdminPage() {
     const [activeTab, setActiveTab] = useState<Tab>('topics');
-    const [topics, setTopics] = useState<Topic[]>(MOCK_TOPICS);
-    const [media, setMedia] = useState<MediaItem[]>(MOCK_MEDIA);
-    const [events, setEvents] = useState<CalendarEvent[]>(MOCK_EVENTS);
-    const [planchas, setPlanchas] = useState<Plancha[]>(MOCK_PLANCHAS);
-    const [usuarios, setUsuarios] = useState<MockUser[]>(MOCK_USERS);
-    const [modal, setModal] = useState<{ type: Tab; item?: Topic | MediaItem | CalendarEvent | Plancha | MockUser } | null>(null);
+    const [topics, setTopics] = useState<Topic[]>([]);
+    const [media, setMedia] = useState<MediaItem[]>([]);
+    const [events, setEvents] = useState<CalendarEvent[]>([]);
+    const [planchas, setPlanchas] = useState<Plancha[]>([]);
+    const [usuarios, setUsuarios] = useState<MockUser[]>([]);
+    const [grades, setGrades] = useState<Grade[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [modal, setModal] = useState<{ type: Tab; item?: any } | null>(null);
     const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
     const [saved, setSaved] = useState(false);
 
+    const hasSupabase = process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_URL !== '';
+
+    useEffect(() => {
+        async function fetchData() {
+            setLoading(true);
+            if (!hasSupabase) {
+                setTopics(MOCK_TOPICS);
+                setMedia(MOCK_MEDIA);
+                setEvents(MOCK_EVENTS);
+                setPlanchas(MOCK_PLANCHAS);
+                setUsuarios(MOCK_USERS);
+                setGrades(MOCK_GRADES);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const supabase = createClient();
+                const [tRes, mRes, eRes, pRes, gRes, uRes] = await Promise.all([
+                    supabase.from('topics').select('*').order('order'),
+                    supabase.from('media_items').select('*').order('title'),
+                    supabase.from('events').select('*').order('event_date'),
+                    supabase.from('planchas').select('*').order('order_index'),
+                    supabase.from('grades').select('*').order('slug'),
+                    supabase.from('profiles').select('id, full_name, role, grade_id')
+                ]);
+
+                if (tRes.data) setTopics(tRes.data as any);
+                if (mRes.data) setMedia(mRes.data as any);
+                if (eRes.data) setEvents(eRes.data as any);
+                if (pRes.data) setPlanchas(pRes.data as any);
+                if (gRes.data) setGrades(gRes.data as any);
+
+                // Mapeo simple de perfiles a MockUser type para compatibilidad con la UI actual
+                if (uRes.data) {
+                    const mappedUsers = uRes.data.map(p => {
+                        const grade = gRes.data?.find(g => g.id === p.grade_id);
+                        return {
+                            id: p.id,
+                            full_name: p.full_name || 'Sin nombre',
+                            email: '', // El email está en auth.users, no accesible fácilmente vía profiles sin admin SDK
+                            role: p.role as UserRole,
+                            grade_id: p.grade_id,
+                            grade_slug: (grade?.slug || 'aprendiz') as GradeSlug
+                        };
+                    });
+                    setUsuarios(mappedUsers as any);
+                }
+            } catch (err) {
+                console.error('Error fetching admin data:', err);
+            } finally {
+                setLoading(false);
+            }
+        }
+        fetchData();
+    }, [hasSupabase]);
+
     const showSaved = () => { setSaved(true); setTimeout(() => setSaved(false), 1500); };
 
-    // TOPICS
-    const saveTopic = (data: Partial<Topic>) => {
-        if (modal?.item) setTopics((p) => p.map((t) => t.id === (modal.item as Topic).id ? { ...t, ...data } : t));
-        else setTopics((p) => [...p, { id: `topic-${Date.now()}`, grade_id: 'grade-2', resources: [], order: p.length + 1, title: '', description: null, ...data }]);
-        setModal(null); showSaved();
+    // GENERIC SAVE
+    const handleSave = async (table: string, data: any, id?: string) => {
+        if (!hasSupabase) {
+            // Mock logic for demo mode
+            showSaved();
+            setModal(null);
+            return;
+        }
+
+        try {
+            const supabase = createClient();
+            if (id && !id.startsWith('temp-')) {
+                // Update
+                const { error } = await supabase.from(table).update(data).eq('id', id);
+                if (error) throw error;
+            } else {
+                // Create
+                const { error } = await supabase.from(table).insert([data]);
+                if (error) throw error;
+            }
+
+            // Re-fetch only the table that changed (or all for simplicity now)
+            window.location.reload();
+        } catch (err) {
+            console.error(`Error saving to ${table}:`, err);
+            alert('Error al guardar en la base de datos.');
+        } finally {
+            setModal(null);
+            showSaved();
+        }
     };
+
+    // TOPICS
+    const saveTopic = (data: Partial<Topic>) => handleSave('topics', data, modal?.item?.id);
 
     // MEDIA
-    const saveMedia = (data: Partial<MediaItem>) => {
-        if (modal?.item) setMedia((p) => p.map((m) => m.id === (modal.item as MediaItem).id ? { ...m, ...data } : m));
-        else setMedia((p) => [...p, { id: `media-${Date.now()}`, grade_id: 'grade-2', title: '', description: null, type: 'link', url: '', ...data }]);
-        setModal(null); showSaved();
-    };
+    const saveMedia = (data: Partial<MediaItem>) => handleSave('media_items', data, modal?.item?.id);
 
     // EVENTS
-    const saveEvent = (data: Partial<CalendarEvent>) => {
-        if (modal?.item) setEvents((p) => p.map((e) => e.id === (modal.item as CalendarEvent).id ? { ...e, ...data } : e));
-        else setEvents((p) => [...p, { id: `event-${Date.now()}`, grade_id: 'grade-2', title: '', description: null, event_date: '', event_type: 'general', ...data }]);
-        setModal(null); showSaved();
-    };
+    const saveEvent = (data: Partial<CalendarEvent>) => handleSave('events', data, modal?.item?.id);
 
     // PLANCHAS
-    const savePlancha = (data: Partial<Plancha>) => {
-        if (modal?.item) setPlanchas((p) => p.map((pl) => pl.id === (modal.item as Plancha).id ? { ...pl, ...data } : pl));
-        else setPlanchas((p) => [...p, { id: `plancha-${Date.now()}`, grade_id: 'grade-2', title: '', author: '', date: String(new Date().getFullYear()), description: null, tags: [], resource_url: '', order_index: p.length + 1, ...data }]);
-        setModal(null); showSaved();
+    const savePlancha = (data: Partial<Plancha>) => handleSave('planchas', data, modal?.item?.id);
+
+    const deleteItem = async (id: string) => {
+        if (!hasSupabase) {
+            setTopics(p => p.filter(t => t.id !== id));
+            setMedia(p => p.filter(m => m.id !== id));
+            setEvents(p => p.filter(e => e.id !== id));
+            setPlanchas(p => p.filter(pl => pl.id !== id));
+            setDeleteConfirm(null);
+            return;
+        }
+
+        const tableMap: Record<Tab, string> = {
+            topics: 'topics',
+            media: 'media_items',
+            events: 'events',
+            planchas: 'planchas',
+            usuarios: 'profiles'
+        };
+
+        try {
+            const supabase = createClient();
+            const { error } = await supabase.from(tableMap[activeTab]).delete().eq('id', id);
+            if (error) throw error;
+            window.location.reload();
+        } catch (err) {
+            console.error('Error deleting:', err);
+            alert('Error al eliminar registro.');
+        } finally {
+            setDeleteConfirm(null);
+        }
     };
 
-    const deleteItem = (id: string) => {
-        if (activeTab === 'topics') setTopics((p) => p.filter((t) => t.id !== id));
-        else if (activeTab === 'media') setMedia((p) => p.filter((m) => m.id !== id));
-        else if (activeTab === 'events') setEvents((p) => p.filter((e) => e.id !== id));
-        else if (activeTab === 'planchas') setPlanchas((p) => p.filter((pl) => pl.id !== id));
-        else if (activeTab === 'usuarios') setUsuarios((p) => p.filter((u) => u.id !== id));
-        setDeleteConfirm(null);
-    };
+    // USUARIOS (Solo perfiles por ahora)
+    const saveUsuario = (data: Partial<MockUser>) => handleSave('profiles', {
+        full_name: data.full_name,
+        role: data.role,
+        grade_id: data.grade_id
+    }, modal?.item?.id);
 
-    // USUARIOS
-    const saveUsuario = (data: Partial<MockUser>) => {
-        if (modal?.item) setUsuarios((p) => p.map((u) => u.id === (modal.item as MockUser).id ? { ...u, ...data } : u));
-        else setUsuarios((p) => [...p, { id: `u-${Date.now()}`, full_name: '', email: '', password: '', role: 'student', grade_id: 'grade-2', grade_slug: 'companero', ...data }]);
-        setModal(null); showSaved();
-    };
-
-    const grades: Grade[] = GRADES;
     const TABS = [
         { id: 'topics' as Tab, label: 'Temas', Icon: BookOpen },
         { id: 'media' as Tab, label: 'Biblioteca', Icon: Library },
@@ -77,6 +172,15 @@ export default function AdminPage() {
     ];
 
     const modalLabel = modal?.type === 'topics' ? 'Tema' : modal?.type === 'media' ? 'Item multimedia' : modal?.type === 'events' ? 'Evento' : modal?.type === 'planchas' ? 'Plancha' : 'Usuario';
+
+    if (loading) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[400px] text-yellow-500/50 space-y-4">
+                <Loader2 className="w-10 h-10 animate-spin" />
+                <p className="text-xs uppercase tracking-[0.2em]">Sincronizando con el Templo...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="space-y-8">

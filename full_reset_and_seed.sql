@@ -119,10 +119,19 @@ CREATE POLICY "Admin Select All Profiles" ON public.profiles FOR SELECT USING (
 );
 
 CREATE POLICY "Public Select Topics" ON public.topics FOR SELECT USING (true);
+CREATE POLICY "Admins CRUD Topics" ON public.topics FOR ALL TO authenticated USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
 CREATE POLICY "Public Select Resources" ON public.resources FOR SELECT USING (true);
+CREATE POLICY "Admins CRUD Resources" ON public.resources FOR ALL TO authenticated USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
 CREATE POLICY "Public Select Media" ON public.media_items FOR SELECT USING (true);
+CREATE POLICY "Admins CRUD Media" ON public.media_items FOR ALL TO authenticated USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
 CREATE POLICY "Public Select Events" ON public.events FOR SELECT USING (true);
+CREATE POLICY "Admins CRUD Events" ON public.events FOR ALL TO authenticated USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
+
 CREATE POLICY "Public Select Planchas" ON public.planchas FOR SELECT USING (true);
+CREATE POLICY "Admins CRUD Planchas" ON public.planchas FOR ALL TO authenticated USING ((auth.jwt() -> 'user_metadata' ->> 'role') = 'admin');
 
 GRANT USAGE ON SCHEMA public TO anon, authenticated;
 GRANT SELECT ON ALL TABLES IN SCHEMA public TO anon, authenticated;
