@@ -43,7 +43,7 @@ export default function MyPlanchasPage() {
 
     useEffect(() => {
         const fetchGrades = async () => {
-            const { data } = await supabase.from('grades').select('*').order('order');
+            const { data } = await supabase.from('grades').select('*').order('slug');
             if (data) setGrades(data);
         };
         fetchGrades();
@@ -235,6 +235,12 @@ function PlanchaForm({ plancha, grades, onSave, onCancel }: { plancha?: Plancha 
     const [tags, setTags] = useState(plancha?.tags?.join(', ') ?? '');
     const [resourceUrl, setResourceUrl] = useState(plancha?.resource_url ?? '');
     const [gradeId, setGradeId] = useState(plancha?.grade_id ?? grades[0]?.id ?? '');
+
+    useEffect(() => {
+        if (!gradeId && grades.length > 0) {
+            setGradeId(grades[0].id);
+        }
+    }, [grades, gradeId]);
 
     return (
         <form onSubmit={(e) => {
