@@ -395,7 +395,7 @@ function TopicForm({ topic, grades, onSave, onCancel }: { topic?: Topic; grades:
     const [title, setTitle] = useState(topic?.title ?? '');
     const [description, setDescription] = useState(topic?.description ?? '');
     const [order, setOrder] = useState(String(topic?.order ?? ''));
-    const [gradeId, setGradeId] = useState(topic?.grade_id ?? 'grade-2');
+    const [gradeId, setGradeId] = useState(topic?.grade_id ?? grades.find(g => g.slug === 'aprendiz')?.id ?? grades[0]?.id ?? '');
     return (
         <form onSubmit={(e) => { e.preventDefault(); onSave({ title, description, order: Number(order), grade_id: gradeId }); }} className="space-y-4">
             <FormField label="Título"><input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} required /></FormField>
@@ -414,7 +414,7 @@ function MediaForm({ item, grades, onSave, onCancel }: { item?: MediaItem; grade
     const [description, setDescription] = useState(item?.description ?? '');
     const [type, setType] = useState(item?.type ?? 'link');
     const [url, setUrl] = useState(item?.url ?? '');
-    const [gradeId, setGradeId] = useState(item?.grade_id ?? 'grade-2');
+    const [gradeId, setGradeId] = useState(item?.grade_id ?? grades.find(g => g.slug === 'aprendiz')?.id ?? grades[0]?.id ?? '');
     return (
         <form onSubmit={(e) => { e.preventDefault(); onSave({ title, description, type: type as MediaItem['type'], url, grade_id: gradeId }); }} className="space-y-4">
             <FormField label="Título"><input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} required /></FormField>
@@ -434,7 +434,7 @@ function EventForm({ event, grades, onSave, onCancel }: { event?: CalendarEvent;
     const [description, setDescription] = useState(event?.description ?? '');
     const [eventDate, setEventDate] = useState(event?.event_date ?? '');
     const [eventType, setEventType] = useState(event?.event_type ?? 'general');
-    const [gradeId, setGradeId] = useState(event?.grade_id ?? 'grade-2');
+    const [gradeId, setGradeId] = useState(event?.grade_id ?? grades.find(g => g.slug === 'aprendiz')?.id ?? grades[0]?.id ?? '');
     return (
         <form onSubmit={(e) => { e.preventDefault(); onSave({ title, description, event_date: eventDate, event_type: eventType as CalendarEvent['event_type'], grade_id: gradeId }); }} className="space-y-4">
             <FormField label="Título"><input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} required /></FormField>
@@ -457,7 +457,7 @@ function PlanchaForm({ plancha, grades, onSave, onCancel }: { plancha?: Plancha;
     const [tags, setTags] = useState(plancha?.tags?.join(', ') ?? '');
     const [resourceUrl, setResourceUrl] = useState(plancha?.resource_url ?? '');
     const [orderIndex, setOrderIndex] = useState(String(plancha?.order_index ?? ''));
-    const [gradeId, setGradeId] = useState(plancha?.grade_id ?? 'grade-2');
+    const [gradeId, setGradeId] = useState(plancha?.grade_id ?? grades.find(g => g.slug === 'aprendiz')?.id ?? grades[0]?.id ?? '');
     return (
         <form onSubmit={(e) => { e.preventDefault(); onSave({ title, author, date, description, tags: tags.split(',').map((t) => t.trim()).filter(Boolean), resource_url: resourceUrl, order_index: Number(orderIndex), grade_id: gradeId }); }} className="space-y-4">
             <FormField label="Título"><input value={title} onChange={(e) => setTitle(e.target.value)} className={inputClass} required /></FormField>
@@ -499,15 +499,12 @@ function UsuarioForm({ usuario, grades, onSave, onCancel }: {
     const [role, setRole] = useState<UserRole>(usuario?.role ?? 'student');
     const [gradeSlug, setGradeSlug] = useState<GradeSlug>(usuario?.grade_slug ?? 'companero');
 
-    const gradeIdBySlug: Record<GradeSlug, string> = {
-        aprendiz: 'grade-1', companero: 'grade-2', maestro: 'grade-3',
-    };
-
     return (
         <form
             onSubmit={(e) => {
                 e.preventDefault();
-                onSave({ full_name: fullName, email, password, role, grade_slug: gradeSlug, grade_id: gradeIdBySlug[gradeSlug] });
+                const grade = grades.find(g => g.slug === gradeSlug);
+                onSave({ full_name: fullName, email, password, role, grade_slug: gradeSlug, grade_id: grade?.id });
             }}
             className="space-y-4"
         >
