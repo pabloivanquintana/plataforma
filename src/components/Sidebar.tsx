@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { BookOpen, Library, Calendar, ScrollText, ShieldCheck, LogOut, Compass, ChevronDown, Menu, X, Settings } from 'lucide-react';
+import { BookOpen, Library, Calendar, ScrollText, ShieldCheck, LogOut, Compass, ChevronDown, Menu, X, Settings, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useUser } from '@/context/UserContext';
 import { createClient } from '@/lib/supabase/client';
@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 const NAV_ITEMS = [
     { href: '/app/topics', label: 'Temas', Icon: BookOpen },
     { href: '/app/planchas', label: 'Planchas', Icon: ScrollText },
+    { href: '/app/my-planchas', label: 'Mis Planchas', Icon: User },
     { href: '/app/library', label: 'Biblioteca', Icon: Library },
     { href: '/app/calendar', label: 'Calendario', Icon: Calendar },
     { href: '/app/settings', label: 'Ajustes', Icon: Settings },

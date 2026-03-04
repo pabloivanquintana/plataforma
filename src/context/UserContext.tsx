@@ -13,6 +13,7 @@ interface UserContextValue {
     gradeName: string;
     gradeOrder: number;      // 1=aprendiz, 2=compañero, 3=maestro
     isAdmin: boolean;
+    userId: string | null;
     /** Devuelve true si el usuario puede ver contenido del grado indicado */
     canSeeGrade: (slug: GradeSlug) => boolean;
     setUser: (opts: { role: UserRole; name?: string; gradeSlug?: GradeSlug; gradeId?: string; gradeName?: string }) => void;
@@ -37,6 +38,7 @@ const defaultCtx: UserContextValue = {
     gradeName: 'Aprendiz',
     gradeOrder: 1,
     isAdmin: false,
+    userId: null,
     canSeeGrade: () => false,
     setUser: () => { },
 };
@@ -47,6 +49,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const [role, setRole] = useState<UserRole>('student');
     const [fullName, setFullName] = useState('');
     const [gradeSlug, setGradeSlug] = useState<GradeSlug>('aprendiz');
+    const [userId, setUserId] = useState<string | null>(null);
     const [initializing, setInitializing] = useState(true);
 
     useEffect(() => {
@@ -57,6 +60,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 setRole('student');
                 setFullName('');
                 setGradeSlug('aprendiz');
+                setUserId(null);
                 setInitializing(false);
                 return;
             }
@@ -78,6 +82,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                 setRole(profile.role as UserRole);
                 setFullName(profile.full_name || user.email || '');
                 setGradeSlug(g || 'aprendiz');
+                setUserId(user.id);
 
                 localStorage.removeItem('mock_role');
                 localStorage.removeItem('mock_name');
@@ -90,6 +95,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
                     setRole(meta.role as UserRole);
                     setFullName(meta.full_name || user.email || '');
                     setGradeSlug((meta.grade_slug as GradeSlug) || 'aprendiz');
+                    setUserId(user.id);
                 } else {
                     // Si no hay nada, intentar Mock
                     const r = localStorage.getItem('mock_role') as UserRole | null;
@@ -142,6 +148,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
             gradeName: GRADE_NAMES[gradeSlug],
             gradeOrder,
             isAdmin: role === 'admin',
+            userId,
             canSeeGrade,
             setUser,
         }}>
