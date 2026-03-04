@@ -114,7 +114,7 @@ ALTER TABLE public.planchas ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Public Select Grades" ON public.grades FOR SELECT USING (true);
 CREATE POLICY "Users Select Own Profile" ON public.profiles FOR SELECT USING (auth.uid() = id);
-CREATE POLICY "Admin Select All Profiles" ON public.profiles FOR SELECT USING (
+CREATE POLICY "Admins CRUD Profiles" ON public.profiles FOR ALL TO authenticated USING (
   (auth.jwt() -> 'user_metadata' ->> 'role') = 'admin'
 );
 
