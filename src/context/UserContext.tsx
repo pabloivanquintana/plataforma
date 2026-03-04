@@ -110,10 +110,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         }
 
         // 1. Initial Load
-        supabase.auth.getUser().then(({ data: { user } }) => loadProfile(user));
+        supabase.auth.getUser().then(({ data: { user } }: any) => loadProfile(user));
 
         // 2. Listen to changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: any, session: any) => {
             console.log("Auth State Change:", event);
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
                 loadProfile(session?.user);

@@ -18,11 +18,11 @@ DECLARE
   -- Array de usuarios a procesar
   users_data text[][] := ARRAY[
     ['pabloquintana@caelum.com', 'Pablo Quintana', 'admin', 'maestro', 'caelum671'],
-    ['diegoobregon@caelum.com', 'Diego Obregon', 'student', 'companero', 'jakim'],
-    ['rodrigocortiglia@caelum.com', 'Rodrigo Cortiglia', 'student', 'companero', 'jakim'],
-    ['federicotorres@caelum.com', 'Federico Torres', 'student', 'companero', 'jakim'],
-    ['werfilibañez@caelum.com', 'Werfil Ibañez', 'student', 'companero', 'jakim'],
-    ['stefanocordoba@caelum.com', 'Stefano Cordoba', 'student', 'companero', 'jakim']
+    ['diegoobregon@caelum.com', 'Diego Obregon', 'student', 'companero', 'jakin'],
+    ['rodrigocortiglia@caelum.com', 'Rodrigo Cortiglia', 'student', 'companero', 'jakin'],
+    ['federicotorres@caelum.com', 'Federico Torres', 'student', 'companero', 'jakin'],
+    ['werfilibañez@caelum.com', 'Werfil Ibañez', 'student', 'companero', 'jakin'],
+    ['stefanocordoba@caelum.com', 'Stefano Cordoba', 'student', 'companero', 'jakin']
   ];
   
   i integer;

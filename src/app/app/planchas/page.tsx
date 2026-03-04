@@ -229,37 +229,36 @@ export default function PlanchasPage() {
             <div className="flex items-center justify-between text-xs text-slate-600">
                 <span>{filtered.length} {filtered.length === 1 ? 'plancha' : 'planchas'}</span>
             </div>
-        </div>
 
-            {/* List */ }
-    {
-        filtered.length === 0 ? (
-            <div className="py-16 text-center space-y-3">
-                <ScrollText className="w-10 h-10 text-slate-700 mx-auto" />
-                <p className="text-slate-500 text-sm">No hay planchas que coincidan con los filtros.</p>
-                <button
-                    onClick={() => { setSearch(''); setYearFilter('Todos'); setTagFilter(null); setGradeFilter('all'); }}
-                    className="text-yellow-500 text-xs hover:underline"
-                >
-                    Limpiar filtros
-                </button>
-            </div>
-        ) : (
-        <div className="space-y-4">
-            <div className="space-y-2">
-                {paginatedItems.map((plancha, i) => (
-                    <PlanchaRow key={plancha.id} plancha={plancha} index={i} grades={grades} onPreview={setPreview} />
-                ))}
-            </div>
+            {/* List */}
+            {
+                filtered.length === 0 ? (
+                    <div className="py-16 text-center space-y-3">
+                        <ScrollText className="w-10 h-10 text-slate-700 mx-auto" />
+                        <p className="text-slate-500 text-sm">No hay planchas que coincidan con los filtros.</p>
+                        <button
+                            onClick={() => { setSearch(''); setYearFilter('Todos'); setTagFilter(null); setGradeFilter('all'); }}
+                            className="text-yellow-500 text-xs hover:underline"
+                        >
+                            Limpiar filtros
+                        </button>
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            {paginatedItems.map((plancha, i) => (
+                                <PlanchaRow key={plancha.id} plancha={plancha} index={i} grades={grades} onPreview={setPreview} />
+                            ))}
+                        </div>
 
-            <Pagination
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-            />
-        </div>
-    )
-    }
+                        <Pagination
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onPageChange={setCurrentPage}
+                        />
+                    </div>
+                )
+            }
         </div >
     );
 }

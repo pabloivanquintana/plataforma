@@ -59,8 +59,8 @@ export default function AdminPage() {
             if (gRes.data) setGrades(gRes.data as any);
 
             if (uRes.data) {
-                const mappedUsers = uRes.data.map(p => {
-                    const grade = gRes.data?.find(g => g.id === p.grade_id);
+                const mappedUsers = uRes.data.map((p: any) => {
+                    const grade = gRes.data?.find((g: any) => g.id === p.grade_id);
                     return {
                         id: p.id,
                         full_name: p.full_name || 'Sin nombre',
